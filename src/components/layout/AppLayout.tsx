@@ -100,7 +100,7 @@ const Sidebar: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-full bg-crypto-blue text-white flex items-center justify-center">C</div>
-            <span className="font-semibold text-xl">CryptoHub</span>
+            <span className="font-semibold text-xl">PayCoin</span>
           </div>
           {isMobile && (
             <button onClick={toggle} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
