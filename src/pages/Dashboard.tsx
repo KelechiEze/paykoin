@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Eye, EyeOff, TrendingUp, TrendingDown, Activity, 
   ArrowRight, DollarSign, Bitcoin, Wallet 
@@ -14,9 +14,11 @@ const marketTrends = [
 
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-  
+  const navigate = useNavigate();
+
+  // Toggle function for balance visibility
   const toggleBalanceVisibility = () => {
-    setIsBalanceVisible(prev => !prev);
+    setIsBalanceVisible((prev) => !prev);
   };
 
   return (
@@ -24,12 +26,18 @@ const Dashboard: React.FC = () => {
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
       
       {/* Balance Card */}
-      <section className="balance-card">
+      <section className="balance-card relative p-6 rounded-lg shadow-md bg-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-crypto-blue opacity-5 rounded-full -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-crypto-indigo opacity-5 rounded-full -ml-10 -mb-10" />
         
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-600">Total Balance</h2>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <h3 className="text-4xl font-bold text-gray-900">
+            {isBalanceVisible ? "$42,582.14" : "••••••••"}
+          </h3>
           <button 
             onClick={toggleBalanceVisibility}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -38,33 +46,29 @@ const Dashboard: React.FC = () => {
             {isBalanceVisible ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
-        
-        <div className="mb-6">
-          {isBalanceVisible ? (
-            <div className="animate-fade-in">
-              <h3 className="text-4xl font-bold text-gray-900">$42,582.14</h3>
-              <div className="flex items-center mt-2 text-green-600">
-                <TrendingUp size={16} className="mr-1" />
-                <span className="text-sm font-medium">+5.23% ($2,124.35 today)</span>
-              </div>
-            </div>
-          ) : (
-            <div className="animate-fade-in">
-              <h3 className="text-4xl font-bold text-gray-900">••••••••</h3>
-              <div className="h-6 mt-2"></div>
-            </div>
-          )}
+
+        <div className="mt-2 text-green-600 flex items-center">
+          <TrendingUp size={16} className="mr-1" />
+          <span className="text-sm font-medium">+5.23% ($2,124.35 today)</span>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center py-3 px-4 rounded-xl bg-crypto-blue text-white font-medium hover:bg-crypto-blue/90 transition-colors">
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <button 
+            className="flex items-center justify-center py-3 px-4 rounded-xl bg-crypto-blue text-white font-medium hover:bg-crypto-blue/90 transition-colors"
+            onClick={() => navigate('/wallets')}
+          >
             <DollarSign size={18} className="mr-2" />
             <span>Deposit</span>
           </button>
-          <button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
+
+          <button 
+            className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors"
+            onClick={() => navigate('/wallets')}
+          >
             <Activity size={18} className="mr-2" />
             <span>Transfer</span>
           </button>
+
           <button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
             <TrendingUp size={18} className="mr-2" />
             <span>Trade</span>

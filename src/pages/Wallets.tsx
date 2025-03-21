@@ -74,15 +74,6 @@ const Wallets: React.FC = () => {
         <h2 className="text-gray-600 font-medium">Total Balance</h2>
         <p className="text-3xl font-bold mt-2">$38,587.92</p>
         <p className="text-sm text-gray-500 mt-1">4 wallets</p>
-        
-        <div className="mt-6 flex flex-wrap gap-2">
-          <button className="py-2 px-4 bg-crypto-blue text-white rounded-lg text-sm font-medium hover:bg-crypto-blue/90 transition-colors">
-            Add Funds
-          </button>
-          <button className="py-2 px-4 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-            Withdraw
-          </button>
-        </div>
       </div>
       
       {/* Wallets List */}
