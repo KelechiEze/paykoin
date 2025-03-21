@@ -7,8 +7,8 @@ import {
 import { cn } from '@/lib/utils';
 
 const marketTrends = [
-  { name: 'Bitcoin', symbol: 'BTC', price: 52495.32, change: 2.41, isUp: true },
-  { name: 'Ethereum', symbol: 'ETH', price: 3012, change: -0.87, isUp: false },
+  { name: 'Bitcoin', symbol: 'BTC', price: 83893.82, change: 2.41, isUp: true },
+  { name: 'Ethereum', symbol: 'ETH', price: 1973.25, change: -0.87, isUp: false },
   { name: 'Solana', symbol: 'SOL', price: 142.15, change: 5.23, isUp: true },
 ];
 
