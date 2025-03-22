@@ -36,7 +36,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? "$42,582.14" : "••••••••"}
+            {isBalanceVisible ? "$80,794.92" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}

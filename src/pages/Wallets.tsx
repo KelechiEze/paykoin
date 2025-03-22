@@ -5,18 +5,30 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-// Sample cryptocurrency data
+// Sample cryptocurrency data with transactions
 const cryptoCurrencies = [
   { 
     id: 'bitcoin', 
     name: 'Bitcoin', 
     symbol: 'BTC', 
-    balance: 0.45, 
-    usdValue: 23621.89,
+    balance: 0.78, 
+    usdValue: 65829.24,
     address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
     color: '#F7931A',
     change: 3.15,
-    isUp: true
+    isUp: true,
+    transactions: [
+      { id: 'tx1', type: 'withdrawal', amount: 0.1, date: '2025-03-22', status: 'completed' },
+      { id: 'tx2', type: 'withdrawal', amount: 0.1, date: '2025-03-21', status: 'completed' },
+      { id: 'tx3', type: 'withdrawal', amount: 0.1, date: '2025-03-20', status: 'completed' },
+      { id: 'tx4', type: 'withdrawal', amount: 0.1, date: '2025-03-19', status: 'completed' },
+      { id: 'tx5', type: 'withdrawal', amount: 0.1, date: '2025-03-19', status: 'completed' },
+      { id: 'tx6', type: 'withdrawal', amount: 0.1, date: '2025-03-18', status: 'completed' },
+      { id: 'tx7', type: 'deposit', amount: 0.1, date: '2025-03-18', status: 'completed' },
+      { id: 'tx8', type: 'withdrawal', amount: 0.05, date: '2025-03-15', status: 'completed' },
+      { id: 'tx9', type: 'deposit', amount: 0.2, date: '2025-03-12', status: 'pending' },
+      { id: 'tx10', type: 'withdrawal', amount: 0.1, date: '2025-03-10', status: 'completed' },
+    ]
   },
   { 
     id: 'ethereum', 
@@ -27,7 +39,13 @@ const cryptoCurrencies = [
     address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
     color: '#627EEA',
     change: -1.24,
-    isUp: false
+    isUp: false,
+    transactions: [
+      { id: 'tx5', type: 'deposit', amount: 1.5, date: '2025-03-08', status: 'completed' },
+      { id: 'tx6', type: 'withdrawal', amount: 0.75, date: '2025-03-11', status: 'completed' },
+      { id: 'tx7', type: 'deposit', amount: 2.0, date: '2025-03-14', status: 'pending' },
+      { id: 'tx8', type: 'withdrawal', amount: 1.0, date: '2025-03-15', status: 'completed' },
+    ]
   },
   { 
     id: 'solana', 
@@ -38,7 +56,13 @@ const cryptoCurrencies = [
     address: 'CXSq1UktW8BnUqxezSZ9G6QL8uQyYKN9BYR3qNfUjJcS',
     color: '#14F195',
     change: 5.67,
-    isUp: true
+    isUp: true,
+    transactions: [
+      { id: 'tx9', type: 'deposit', amount: 10, date: '2025-03-09', status: 'completed' },
+      { id: 'tx10', type: 'withdrawal', amount: 5, date: '2025-03-12', status: 'completed' },
+      { id: 'tx11', type: 'deposit', amount: 15, date: '2025-03-14', status: 'pending' },
+      { id: 'tx12', type: 'withdrawal', amount: 8, date: '2025-03-16', status: 'completed' },
+    ]
   },
   { 
     id: 'cardano', 
@@ -49,7 +73,13 @@ const cryptoCurrencies = [
     address: 'addr1qx54l9frjhncsjy2qpme4rqj7kj24j8y5jf3rnrliuvxefuej7tl2jzuzkfjr69xn04d3j5vs6pzq6n5gpr3jmvl5hmsz3wcdt',
     color: '#0033AD',
     change: 0.32,
-    isUp: true
+    isUp: true,
+    transactions: [
+      { id: 'tx13', type: 'deposit', amount: 500, date: '2025-03-07', status: 'completed' },
+      { id: 'tx14', type: 'withdrawal', amount: 200, date: '2025-03-10', status: 'completed' },
+      { id: 'tx15', type: 'deposit', amount: 300, date: '2025-03-13', status: 'pending' },
+      { id: 'tx16', type: 'withdrawal', amount: 100, date: '2025-03-14', status: 'completed' },
+    ]
   },
 ];
 
@@ -72,7 +102,7 @@ const Wallets: React.FC = () => {
       {/* Total Balance Summary */}
       <div className="dashboard-card">
         <h2 className="text-gray-600 font-medium">Total Balance</h2>
-        <p className="text-3xl font-bold mt-2">$38,587.92</p>
+        <p className="text-3xl font-bold mt-2">$80,794.92</p>
         <p className="text-sm text-gray-500 mt-1">4 wallets</p>
       </div>
       
@@ -240,15 +270,37 @@ const CryptoDetail: React.FC<CryptoDetailProps> = ({ crypto, onBack }) => {
       </div>
       
       {/* Transaction History Section */}
-      <div className="dashboard-card">
-        <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
-        <div className="text-center py-10 text-gray-500">
-          <p>No transactions found for this wallet</p>
-          <button className="mt-4 text-crypto-blue font-medium hover:underline">
-            Make your first transaction
-          </button>
+<div className="dashboard-card">
+  <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
+  {crypto.transactions.length > 0 ? (
+    <div className="space-y-4">
+      {crypto.transactions.map((tx) => (
+        <div key={tx.id} className="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
+          <div>
+            <p className="text-sm font-medium capitalize">{tx.type}</p>
+            <p className="text-xs text-gray-500">{tx.date}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold">
+              {tx.type === "deposit" ? "+" : "-"}{tx.amount} {crypto.symbol}
+            </p>
+            <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
+              {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+            </p>
+          </div>
         </div>
-      </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-10 text-gray-500">
+      <p>No transactions found for this wallet</p>
+      <button className="mt-4 text-crypto-blue font-medium hover:underline">
+        Make your first transaction
+      </button>
+    </div>
+  )}
+</div>
+
     </div>
   );
 };
