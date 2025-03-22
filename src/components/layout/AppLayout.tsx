@@ -157,8 +157,8 @@ const Sidebar: React.FC<{ isOpen: boolean, translate: (key: string) => string }>
           darkMode ? "border-gray-700" : "border-b"
         )}>
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full bg-crypto-blue text-white flex items-center justify-center">C</div>
-            <span className="font-semibold text-xl">CryptoHub</span>
+            <div className="w-8 h-8 rounded-full bg-crypto-blue text-white flex items-center justify-center">P</div>
+            <span className="font-semibold text-xl">PayCoin</span>
           </div>
           {isMobile && (
             <button onClick={toggle} className={cn(
