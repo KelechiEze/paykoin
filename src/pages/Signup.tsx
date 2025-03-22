@@ -34,11 +34,22 @@ const Signup = () => {
     
     setTimeout(() => {
       setIsLoading(false);
+      
+      // Store user data in localStorage
+      const userData = {
+        name,
+        email,
+        password
+      };
+      
+      // Save to localStorage - in a real app, this would be a secure backend API call
+      localStorage.setItem('userData', JSON.stringify(userData));
+      
       toast({
         title: "Account created",
         description: "You have successfully created an account!",
       });
-      navigate('/');
+      navigate('/login');
     }, 1500);
   };
 

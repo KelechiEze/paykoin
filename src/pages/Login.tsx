@@ -33,12 +33,35 @@ const Login = () => {
     
     setTimeout(() => {
       setIsLoading(false);
-      toast({
-        title: "Success",
-        description: "You have successfully logged in!",
-      });
-      // Changed navigation target from '/' to '/dashboard'
-      navigate('/dashboard');
+      
+      // Get stored user data
+      const storedUserDataString = localStorage.getItem('userData');
+      
+      if (!storedUserDataString) {
+        toast({
+          title: "Error",
+          description: "No account found. Please sign up first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const userData = JSON.parse(storedUserDataString);
+      
+      // Check if login credentials match
+      if (userData.email === email && userData.password === password) {
+        toast({
+          title: "Success",
+          description: "You have successfully logged in!",
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+      }
     }, 1500);
   };
 
