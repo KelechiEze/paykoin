@@ -227,29 +227,70 @@ const TopNav: React.FC = () => {
   const { toggle, isOpen } = useSidebar();
   const isMobile = useIsMobile();
   const { darkMode } = useSettings();
+  const navigate = useNavigate();
+
+  const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+
 
   return (
-    <header className={cn(
-      "h-16 flex items-center px-4",
-      darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-b"
-    )}>
-      {!isOpen && (
-        <button onClick={toggle} className={cn(
-          "p-2 rounded-full transition-colors",
-          darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-        )}>
-          <Menu size={20} />
-        </button>
-      )}
-      
-      <div className="ml-auto flex items-center space-x-4">
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
-          darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-500"
-        )}>
-          <User size={20} />
+    <>
+      {/* Top Navbar */}
+      <header className={cn(
+        "h-16 flex items-center px-4",
+        darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-b"
+      )}>
+        {!isOpen && (
+          <button onClick={toggle} className={cn(
+            "p-2 rounded-full transition-colors",
+            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+          )}>
+            <Menu size={20} />
+          </button>
+        )}
+
+        {/* User Profile Icon */}
+        <div className="ml-auto flex items-center space-x-4">
+          <button 
+            onClick={() => setLogoutModalOpen(true)}
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+              darkMode ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+            )}
+          >
+            <User size={20} />
+          </button>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className={cn(
+            "p-6 rounded-lg shadow-lg w-96 text-center",
+            darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+          )}>
+            <h2 className="text-xl font-semibold">Are you sure you want to logout?</h2>
+            <div className="mt-4 flex justify-center space-x-4">
+              <button 
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                onClick={() => {
+                  localStorage.removeItem("authToken"); // Simulating logout
+                  setLogoutModalOpen(false);
+                  navigate("/login");
+                }}
+              >
+                Logout
+              </button>
+              <button 
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+                onClick={() => setLogoutModalOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
