@@ -25,7 +25,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { icon: Home, label: 'Dashboard', path: '/' },
+  { icon: Home, label: 'Dashboard', path: '/dashboard' },
   { icon: Wallet, label: 'Wallets', path: '/wallets' },
   { icon: User, label: 'Profile', path: '/profile' },
   { icon: Settings, label: 'Settings', path: '/settings' },
