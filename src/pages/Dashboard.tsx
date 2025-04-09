@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 const marketTrends = [
-  { name: 'Bitcoin', symbol: 'BTC', price: 83893.82, change: 2.41, isUp: true },
+  { name: 'Bitcoin', symbol: 'BTC', price: 77073.10, change: 2.41, isUp: true },
   { name: 'Ethereum', symbol: 'ETH', price: 1973.25, change: -0.87, isUp: false },
   { name: 'Solana', symbol: 'SOL', price: 142.15, change: 5.23, isUp: true },
 ];
@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? "$32,794.92" : "••••••••"}
+            {isBalanceVisible ? "$13,959.92" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}
@@ -59,7 +59,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Dynamic Percentage Change */}
-        <PercentageChange value={+5.23} suffix="$560.35 today" />
+        <PercentageChange value={+15.23} suffix="$1,165.35 today" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
