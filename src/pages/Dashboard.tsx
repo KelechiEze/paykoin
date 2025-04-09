@@ -5,6 +5,7 @@ import {
   ArrowRight, DollarSign, Bitcoin, Wallet 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const marketTrends = [
   { name: 'Bitcoin', symbol: 'BTC', price: 83893.82, change: 2.41, isUp: true },
@@ -16,7 +17,6 @@ const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const navigate = useNavigate();
 
-  // Toggle function for balance visibility
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible((prev) => !prev);
   };
@@ -24,7 +24,18 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
-      
+
+      {/* Welcome Message */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="bg-gradient-to-r from-crypto-indigo to-crypto-blue text-white p-4 rounded-lg shadow-md"
+      >
+        <h2 className="text-xl font-semibold">Welcome back, Zayden </h2>
+        <p className="text-sm mt-1">We’re glad to have you here. Let’s check your crypto performance today.</p>
+      </motion.div>
+
       {/* Balance Card */}
       <section className="balance-card relative p-6 rounded-lg shadow-md bg-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-crypto-blue opacity-5 rounded-full -mr-20 -mt-20" />
@@ -36,7 +47,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? "$80,794.92" : "••••••••"}
+            {isBalanceVisible ? "$32,794.92" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}
@@ -47,10 +58,8 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        <div className="mt-2 text-green-600 flex items-center">
-          <TrendingUp size={16} className="mr-1" />
-          <span className="text-sm font-medium">+5.23% ($2,124.35 today)</span>
-        </div>
+        {/* Dynamic Percentage Change */}
+        <PercentageChange value={+5.23} suffix="$560.35 today" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
@@ -124,13 +133,7 @@ const Dashboard: React.FC = () => {
               
               <div className="text-right">
                 <p className="font-medium">${coin.price.toLocaleString()}</p>
-                <p className={cn(
-                  "text-sm flex items-center justify-end",
-                  coin.isUp ? "text-green-600" : "text-red-500"
-                )}>
-                  {coin.isUp ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
-                  {coin.change}%
-                </p>
+                <PercentageChange value={coin.change} />
               </div>
             </div>
           ))}
@@ -166,6 +169,25 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, trend, icon
           <Icon size={20} />
         </div>
       </div>
+    </div>
+  );
+};
+
+// ✅ Reusable Percentage Change component
+interface PercentageChangeProps {
+  value: number;
+  suffix?: string;
+}
+
+const PercentageChange: React.FC<PercentageChangeProps> = ({ value, suffix }) => {
+  const isPositive = value >= 0;
+  return (
+    <div className={cn(
+      "flex items-center text-sm font-medium",
+      isPositive ? "text-green-600" : "text-red-500"
+    )}>
+      {isPositive ? <TrendingUp size={14} className="mr-1" /> : <TrendingDown size={14} className="mr-1" />}
+      <span>{isPositive ? '+' : ''}{value}%{suffix && ` (${suffix})`}</span>
     </div>
   );
 };
