@@ -12,7 +12,7 @@ const cryptoCurrencies = [
     name: 'Bitcoin', 
     symbol: 'BTC', 
     balance: 0.78, 
-    usdValue: 65829.24,
+    usdValue: 18000.24,
     address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
     color: '#F7931A',
     change: 3.15,
@@ -102,7 +102,7 @@ const Wallets: React.FC = () => {
       {/* Total Balance Summary */}
       <div className="dashboard-card">
         <h2 className="text-gray-600 font-medium">Total Balance</h2>
-        <p className="text-3xl font-bold mt-2">$80,794.92</p>
+        <p className="text-3xl font-bold mt-2">$32,794.92</p>
         <p className="text-sm text-gray-500 mt-1">4 wallets</p>
       </div>
       
