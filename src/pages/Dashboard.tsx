@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? "$13,959.92" : "••••••••"}
+            {isBalanceVisible ? "$959.92" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}
@@ -59,7 +59,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Dynamic Percentage Change */}
-        <PercentageChange value={+15.23} suffix="$1,165.35 today" />
+        <PercentageChange value={-1.23} suffix="$16.35 today" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
