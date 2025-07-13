@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import CryptoChart from '@/components/layout/CryptoChart';
 
 const marketTrends = [
   { name: 'Bitcoin', symbol: 'BTC', price: 77073.10, change: 2.41, isUp: true },
@@ -142,6 +143,11 @@ const Dashboard: React.FC = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Crypto Chart */}
+      <section className="dashboard-card">
+        <CryptoChart />
       </section>
     </div>
   );
