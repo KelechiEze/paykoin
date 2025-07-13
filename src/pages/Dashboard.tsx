@@ -17,6 +17,10 @@ const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const navigate = useNavigate();
 
+  // Get user data from localStorage
+  const userData = localStorage.getItem('userData');
+  const userName = userData ? JSON.parse(userData).name : 'User';
+
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible((prev) => !prev);
   };
@@ -32,8 +36,8 @@ const Dashboard: React.FC = () => {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="bg-gradient-to-r from-crypto-indigo to-crypto-blue text-white p-4 rounded-lg shadow-md"
       >
-        <h2 className="text-xl font-semibold">Welcome back, Zayden </h2>
-        <p className="text-sm mt-1">We’re glad to have you here. Let’s check your crypto performance today.</p>
+        <h2 className="text-xl font-semibold">Welcome back, {userName}</h2>
+        <p className="text-sm mt-1">We're glad to have you here. Let's check your crypto performance today.</p>
       </motion.div>
 
       {/* Balance Card */}
@@ -47,7 +51,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? "$959.92" : "••••••••"}
+            {isBalanceVisible ? "$25,900.00" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}
@@ -173,7 +177,6 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, trend, icon
   );
 };
 
-// ✅ Reusable Percentage Change component
 interface PercentageChangeProps {
   value: number;
   suffix?: string;
