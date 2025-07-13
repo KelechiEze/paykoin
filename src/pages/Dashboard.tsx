@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -7,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import CryptoChart from '@/components/layout/CryptoChart';
+import CryptoAssetsModal from '@/components/layout/CryptoAssetsModal';
 
 const marketTrends = [
   { name: 'Bitcoin', symbol: 'BTC', price: 77073.10, change: 2.41, isUp: true },
@@ -16,6 +18,7 @@ const marketTrends = [
 
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const navigate = useNavigate();
 
   // Get user data from localStorage
@@ -118,7 +121,10 @@ const Dashboard: React.FC = () => {
       <section className="dashboard-card">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Market Trends</h2>
-          <button className="text-sm text-crypto-blue font-medium flex items-center hover:underline">
+          <button 
+            onClick={() => setIsAssetsModalOpen(true)}
+            className="text-sm text-crypto-blue font-medium flex items-center hover:underline transition-colors"
+          >
             View all <ArrowRight size={16} className="ml-1" />
           </button>
         </div>
@@ -149,6 +155,12 @@ const Dashboard: React.FC = () => {
       <section className="dashboard-card">
         <CryptoChart />
       </section>
+
+      {/* Crypto Assets Modal */}
+      <CryptoAssetsModal 
+        isOpen={isAssetsModalOpen} 
+        onClose={() => setIsAssetsModalOpen(false)} 
+      />
     </div>
   );
 };
