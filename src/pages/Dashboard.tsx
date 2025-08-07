@@ -72,6 +72,9 @@ const Dashboard: React.FC = () => {
     setIsBalanceVisible((prev) => !prev);
   };
 
+  // Calculate portfolio growth (placeholder logic - replace with your actual calculation)
+  const portfolioGrowth = +70.00; // This should be calculated based on your portfolio performance
+
   return (
     <div className="space-y-8 animate-fade-in">
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
@@ -115,7 +118,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Dynamic Percentage Change */}
-        <PercentageChange value={-0.00} suffix="$0.00 today" />
+        <PercentageChange value={portfolioGrowth} suffix="$0.00 today" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
@@ -145,14 +148,14 @@ const Dashboard: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           title="Portfolio Growth"
-          value="+18.4%"
-          subtitle="This month"
-          trend="up"
+          value={`${portfolioGrowth >= 0 ? '+' : ''}${portfolioGrowth.toFixed(2)}%`}
+          subtitle="Latest Updated"
+          trend={portfolioGrowth >= 0 ? "up" : "down"}
           icon={TrendingUp}
         />
         <StatCard 
           title="Active Wallets"
-          value="4"
+          value="0"
           subtitle="Last updated today"
           icon={Wallet}
         />
