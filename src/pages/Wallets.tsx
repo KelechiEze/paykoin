@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Copy, Check, ExternalLink, DollarSign } from 'lucide-react';
+import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/firebase';
 import { useAuth } from '../context/AuthContext';
+import { writeBatch } from 'firebase/firestore';
 import {
   doc,
   collection,
@@ -35,10 +36,14 @@ interface Cryptocurrency {
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal';
+  type: 'deposit' | 'withdrawal' | 'sent' | 'received';
   amount: number;
-  date: string;
+  date: Date;
   status: 'pending' | 'completed';
+  to?: string;
+  from?: string;
+  fee?: number;
+  note?: string;
 }
 
 interface CGCoin {
@@ -47,6 +52,12 @@ interface CGCoin {
   symbol: string;
   current_price: number;
   price_change_percentage_24h: number;
+}
+
+interface User {
+  uid: string;
+  email: string;
+  displayName: string;
 }
 
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
@@ -110,6 +121,255 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
   );
 };
 
+const SendModal = ({ 
+  crypto, 
+  onClose,
+  onSendSuccess
+}: { 
+  crypto: Cryptocurrency; 
+  onClose: () => void;
+  onSendSuccess: () => void;
+}) => {
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState('');
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
+
+const handleSend = async () => {
+  if (!currentUser) {
+    console.log("No current user logged in.");
+    return;
+  }
+
+  console.log("Current user:", currentUser);
+
+  const sendAmount = parseFloat(amount);
+  if (isNaN(sendAmount)) {
+    setError('Please enter a valid amount');
+    console.log("Invalid amount entered:", amount);
+    return;
+  }
+
+  if (sendAmount <= 0) {
+    setError('Amount must be greater than zero');
+    console.log("Amount is not greater than zero:", sendAmount);
+    return;
+  }
+
+  const fee = Math.max(0.0001, sendAmount * 0.005);
+  const totalDeduction = sendAmount + fee;
+
+  if (totalDeduction > crypto.balance) {
+    setError(`Insufficient balance. You need at least ${totalDeduction.toFixed(8)} ${crypto.symbol}`);
+    console.log("Insufficient balance. Required:", totalDeduction, "Available:", crypto.balance);
+    return;
+  }
+
+  if (!recipientEmail || !recipientEmail.includes('@')) {
+    setError('Please enter a valid recipient email');
+    console.log("Invalid recipient email:", recipientEmail);
+    return;
+  }
+
+  if (recipientEmail === currentUser.email) {
+    setError('You cannot send to yourself');
+    console.log("Attempted to send to self:", recipientEmail);
+    return;
+  }
+
+  setIsSending(true);
+  setError('');
+  console.log("Initiating send transaction...");
+
+  try {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', recipientEmail));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      setError('User with this email not found');
+      console.log("Recipient not found for email:", recipientEmail);
+      setIsSending(false);
+      return;
+    }
+
+    const recipientUser = querySnapshot.docs[0].data();
+    const recipientUserId = querySnapshot.docs[0].id;
+
+    console.log("Recipient found:", recipientUserId, recipientUser);
+
+    const recipientWalletRef = doc(db, 'users', recipientUserId, 'wallets', crypto.id);
+    const recipientWalletSnap = await getDoc(recipientWalletRef);
+
+    const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
+    const newSenderBalance = crypto.balance - totalDeduction;
+
+    const batch = writeBatch(db);
+
+    // Update sender wallet
+    batch.update(senderWalletRef, {
+      cryptoBalance: newSenderBalance
+    });
+    console.log("Prepared sender wallet update");
+
+    const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
+    batch.set(senderTxRef, {
+      type: 'sent',
+      amount: sendAmount,
+      fee: fee,
+      total: totalDeduction,
+      date: serverTimestamp(),
+      status: 'completed',
+      to: recipientEmail,
+      note: `Sent to ${recipientEmail}`,
+      symbol: crypto.symbol
+    });
+    console.log("Prepared sender transaction");
+
+    let recipientWalletData: any;
+
+    if (!recipientWalletSnap.exists()) {
+      recipientWalletData = {
+        name: crypto.name,
+        symbol: crypto.symbol,
+        cryptoBalance: 0,
+        walletAddress: `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`,
+        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+        change: 0,
+        isUp: false,
+        cgId: crypto.cgId,
+        createdAt: serverTimestamp()
+      };
+      batch.set(recipientWalletRef, recipientWalletData);
+      console.log("Recipient wallet does not exist. Preparing to create:", recipientWalletData);
+    } else {
+      recipientWalletData = recipientWalletSnap.data();
+      console.log("Recipient wallet exists:", recipientWalletData);
+    }
+
+    const newRecipientBalance = (recipientWalletData.cryptoBalance || 0) + sendAmount;
+
+    batch.update(recipientWalletRef, {
+      cryptoBalance: newRecipientBalance
+    });
+    console.log("Prepared recipient wallet update with balance:", newRecipientBalance);
+
+    const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
+    batch.set(recipientTxRef, {
+      type: 'received',
+      amount: sendAmount,
+      date: serverTimestamp(),
+      status: 'completed',
+      from: currentUser.email,
+      note: `Received from ${currentUser.email}`,
+      symbol: crypto.symbol
+    });
+    console.log("Prepared recipient transaction");
+
+    await batch.commit();
+    console.log("Batch committed successfully");
+
+    toast({
+      title: 'Transfer successful!',
+      description: `${sendAmount} ${crypto.symbol} sent to ${recipientEmail}`,
+    });
+
+    onSendSuccess();
+    onClose();
+  } catch (err: any) {
+    console.error('Error sending crypto:', err);
+    setError('Failed to send. Please try again later.');
+    toast({
+      variant: 'destructive',
+      title: 'Transfer failed',
+      description: err.message || 'There was an error processing your transfer',
+    });
+  } finally {
+    setIsSending(false);
+    console.log("Send process finished.");
+  }
+};
+
+  const handleMaxAmount = () => {
+    const maxAmount = Math.max(0, crypto.balance - 0.0001);
+    setAmount(maxAmount.toFixed(8));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 animate-scale-in">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Send {crypto.name}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            &times;
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-gray-700 mb-2">Recipient Email</label>
+            <input
+              type="email"
+              placeholder="Enter recipient's email"
+              className="w-full p-3 border rounded-lg"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-gray-700">Amount ({crypto.symbol})</label>
+              <button
+                onClick={handleMaxAmount}
+                className="text-xs text-crypto-blue hover:underline"
+              >
+                Max: {crypto.balance.toFixed(8)}
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type="number"
+                placeholder="0.00"
+                className="w-full p-3 border rounded-lg pl-10"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <span className="absolute left-3 top-3.5 text-gray-500">{crypto.symbol}</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-gray-600">Network Fee</span>
+              <span>0.5% (min 0.0001 {crypto.symbol})</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span>Total to send</span>
+              <span>
+                {amount
+                  ? `${(parseFloat(amount) + Math.max(0.0001, parseFloat(amount) * 0.005)).toFixed(8)} ${crypto.symbol}`
+                  : `0.00 ${crypto.symbol}`}
+              </span>
+            </div>
+          </div>
+
+          {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
+
+          <button
+            onClick={handleSend}
+            disabled={isSending}
+            className="w-full py-3 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50"
+          >
+            {isSending ? 'Sending...' : 'Send Now'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 const AddCryptoModal = ({ 
   onClose, 
   onAdd,
@@ -292,10 +552,15 @@ const Wallets: React.FC = () => {
                 );
                 transactions = transactionsSnapshot.docs
                   .filter(doc => doc.id !== 'initial')
-                  .map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                  })) as Transaction[];
+                  .map(doc => {
+                    const data = doc.data();
+                    return {
+                      id: doc.id,
+                      ...data,
+                      // Convert Firestore Timestamp to Date
+                      date: data.date?.toDate() || new Date()
+                    } as Transaction;
+                  });
               } catch (error) {
                 console.error("Error fetching transactions:", error);
               }
@@ -500,10 +765,29 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
 const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = ({ crypto, onBack }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
   const { toast } = useToast();
+  const [localCrypto, setLocalCrypto] = useState(crypto);
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalCrypto(crypto);
+  }, [crypto]);
+  
+  const handleSendSuccess = () => {
+  const latestTransaction = localCrypto.transactions?.[0];
+  const totalStr = latestTransaction?.total ?? "0";
+  const total = parseFloat(totalStr);
+
+  setLocalCrypto((prev) => ({
+    ...prev,
+    balance: prev.balance - (isNaN(total) ? 0 : total),
+  }));
+};
+
   
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(crypto.address)
+    navigator.clipboard.writeText(localCrypto.address)
       .then(() => {
         setIsCopied(true);
         toast({
@@ -524,21 +808,21 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const handleViewOnExplorer = () => {
     let explorerUrl = '';
     
-    switch (crypto.symbol.toLowerCase()) {
+    switch (localCrypto.symbol.toLowerCase()) {
       case 'btc':
-        explorerUrl = `https://www.blockchain.com/explorer/addresses/btc/${crypto.address}`;
+        explorerUrl = `https://www.blockchain.com/explorer/addresses/btc/${localCrypto.address}`;
         break;
       case 'eth':
-        explorerUrl = `https://etherscan.io/address/${crypto.address}`;
+        explorerUrl = `https://etherscan.io/address/${localCrypto.address}`;
         break;
       case 'sol':
-        explorerUrl = `https://solscan.io/account/${crypto.address}`;
+        explorerUrl = `https://solscan.io/account/${localCrypto.address}`;
         break;
       case 'ada':
-        explorerUrl = `https://cardanoscan.io/address/${crypto.address}`;
+        explorerUrl = `https://cardanoscan.io/address/${localCrypto.address}`;
         break;
       default:
-        explorerUrl = `https://www.google.com/search?q=${crypto.name}+blockchain+explorer`;
+        explorerUrl = `https://www.google.com/search?q=${localCrypto.name}+blockchain+explorer`;
     }
     
     window.open(explorerUrl, '_blank');
@@ -547,7 +831,15 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   return (
     <div className="animate-fade-in">
       {showTransferModal && (
-        <TransferModal crypto={crypto} onClose={() => setShowTransferModal(false)} />
+        <TransferModal crypto={localCrypto} onClose={() => setShowTransferModal(false)} />
+      )}
+      
+      {showSendModal && (
+        <SendModal 
+          crypto={localCrypto} 
+          onClose={() => setShowSendModal(false)}
+          onSendSuccess={handleSendSuccess}
+        />
       )}
       
       <button 
@@ -562,30 +854,30 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <div className="flex items-center mb-6">
           <div 
             className="w-12 h-12 rounded-full mr-4 flex items-center justify-center"
-            style={{ backgroundColor: `${crypto.color}20` }}
+            style={{ backgroundColor: `${localCrypto.color}20` }}
           >
-            <span style={{ color: crypto.color }} className="text-lg font-bold">{crypto.symbol.charAt(0).toUpperCase()}</span>
+            <span style={{ color: localCrypto.color }} className="text-lg font-bold">{localCrypto.symbol.charAt(0).toUpperCase()}</span>
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{crypto.name}</h2>
-            <p className="text-gray-500">{crypto.symbol.toUpperCase()}</p>
+            <h2 className="text-2xl font-bold">{localCrypto.name}</h2>
+            <p className="text-gray-500">{localCrypto.symbol.toUpperCase()}</p>
           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <p className="text-gray-500 mb-1">Balance</p>
-            <h3 className="text-3xl font-bold">{crypto.balance.toFixed(8)} {crypto.symbol.toUpperCase()}</h3>
-            <p className="mt-1 text-xl">${crypto.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <h3 className="text-3xl font-bold">{localCrypto.balance.toFixed(8)} {localCrypto.symbol.toUpperCase()}</h3>
+            <p className="mt-1 text-xl">${localCrypto.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           
           <div className="flex flex-col justify-center">
             <div className={cn(
               "py-2 px-4 rounded-lg text-center",
-              crypto.isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+              localCrypto.isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
             )}>
               <p className="font-medium">
-                {crypto.isUp ? "+" : ""}{crypto.change.toFixed(2)}% 
+                {localCrypto.isUp ? "+" : ""}{localCrypto.change.toFixed(2)}% 
                 <span className="text-sm font-normal ml-1">last 24h</span>
               </p>
             </div>
@@ -598,7 +890,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-700 font-mono truncate">
-                  {crypto.address}
+                  {localCrypto.address}
                 </p>
                 <button 
                   onClick={copyToClipboard} 
@@ -619,6 +911,13 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <span>Deposit</span>
             </button>
             <button 
+              onClick={() => setShowSendModal(true)}
+              className="flex items-center py-2.5 px-4 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+            >
+              <Send size={16} className="mr-2" />
+              <span>Send</span>
+            </button>
+            <button 
               onClick={handleViewOnExplorer}
               className="flex items-center py-2.5 px-4 rounded-lg border border-gray-200 font-medium hover:bg-gray-50 transition-colors"
             >
@@ -631,24 +930,34 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       
       <div className="dashboard-card">
         <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
-        {crypto.transactions.length > 0 ? (
+        {localCrypto.transactions.length > 0 ? (
           <div className="space-y-4">
-            {crypto.transactions.map((tx) => (
-              <div key={tx.id} className="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
-                <div>
-                  <p className="text-sm font-medium capitalize">{tx.type}</p>
-                  <p className="text-xs text-gray-500">{tx.date}</p>
+            {localCrypto.transactions
+              .sort((a, b) => b.date.getTime() - a.date.getTime())
+              .map((tx) => (
+                <div key={tx.id} className="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
+                  <div>
+                    <p className="text-sm font-medium capitalize">{tx.type}</p>
+                    <p className="text-xs text-gray-500">
+                      {tx.date.toLocaleString()}
+                      {tx.type === 'sent' && tx.to && `To: ${tx.to}`}
+                      {tx.type === 'received' && tx.from && `From: ${tx.from}`}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-red-500'}`}>
+                      {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
+                      {tx.amount} {localCrypto.symbol.toUpperCase()}
+                    </p>
+                    {tx.fee && (
+                      <p className="text-xs text-gray-500">Fee: {tx.fee} {localCrypto.symbol.toUpperCase()}</p>
+                    )}
+                    <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
+                      {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold">
-                    {tx.type === "deposit" ? "+" : "-"}{tx.amount} {crypto.symbol.toUpperCase()}
-                  </p>
-                  <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
-                    {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         ) : (
           <div className="text-center py-10 text-gray-500">
