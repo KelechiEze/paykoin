@@ -7,19 +7,13 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: "0.0.0.0", // Allow external devices to access
     port: 8080,
   },
   plugins: [
     react(),
     nodePolyfills({
-      // To add specific polyfills you need
-      include: [
-        'buffer', 
-        'crypto',
-        'stream',
-        'util'
-      ],
+      include: ['buffer', 'crypto', 'stream', 'util'],
       globals: {
         Buffer: true,
         process: true,
@@ -39,7 +33,6 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     esbuildOptions: {
-      // Node.js global to browser globalThis
       define: {
         global: 'globalThis'
       },
