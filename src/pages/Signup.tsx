@@ -204,7 +204,7 @@ const Signup = () => {
   };
 
   return (
-    <AuthLayout title="Create an account" subtitle="Sign up to get started with CryptoHub">
+    <AuthLayout title="Create an account" subtitle="Sign up to get started with PayCoin">
       <Card>
         <form onSubmit={handleSignup}>
           <CardContent className="pt-6">
