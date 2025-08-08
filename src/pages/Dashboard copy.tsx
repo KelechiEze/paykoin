@@ -8,9 +8,6 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import CryptoChart from '@/components/layout/CryptoChart';
 import CryptoAssetsModal from '@/components/layout/CryptoAssetsModal';
-import { auth, db } from '@/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
 
 interface MarketTrend {
   id: string;
@@ -21,49 +18,17 @@ interface MarketTrend {
   image?: string;
 }
 
-interface DashboardData {
-  totalBalance: number;
-  portfolioGrowth: number;
-  activeWallets: number;
-  topPerformer: string;
-}
-
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const [marketTrends, setMarketTrends] = useState<MarketTrend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
-    totalBalance: 0,
-    portfolioGrowth: 0,
-    activeWallets: 0,
-    topPerformer: ''
-  });
-  const [user] = useAuthState(auth);
   const navigate = useNavigate();
 
-  // Fetch dashboard data from Firestore
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', user.uid, 'dashboard', 'stats'),
-      (doc) => {
-        if (doc.exists()) {
-          setDashboardData(doc.data() as DashboardData);
-        } else {
-          console.log('No dashboard data found');
-        }
-      },
-      (err) => {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
+  // Get user data from localStorage
+  const userData = localStorage.getItem('userData');
+  const userName = userData ? JSON.parse(userData).name : 'User';
 
   // Fetch market trends data
   useEffect(() => {
@@ -84,7 +49,7 @@ const Dashboard: React.FC = () => {
       } catch (err) {
         console.error('Error fetching market trends:', err);
         setError('Failed to load market trends');
-        // Fallback data
+        // Fallback data in case API fails
         setMarketTrends([
           { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', current_price: 0, price_change_percentage_24h: 0 },
           { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', current_price: 0, price_change_percentage_24h: 0 },
@@ -96,7 +61,10 @@ const Dashboard: React.FC = () => {
     };
 
     fetchMarketTrends();
+    
+    // Refresh data every 30 seconds
     const intervalId = setInterval(fetchMarketTrends, 30000);
+    
     return () => clearInterval(intervalId);
   }, []);
 
@@ -104,25 +72,8 @@ const Dashboard: React.FC = () => {
     setIsBalanceVisible((prev) => !prev);
   };
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  };
-
-  const formatName = (str: string) => {
-  return str
-    .replace(/([a-z])([A-Z])/g, '$1 $2')      // Add space between camelCase
-    .replace(/[_\-\.]/g, ' ')                 // Replace _ . - with space
-    .replace(/\s+/g, ' ')                     // Remove extra spaces
-    .trim()
-    .replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letters
-};
-
+  // Calculate portfolio growth (placeholder logic - replace with your actual calculation)
+  const portfolioGrowth = +70.00; // This should be calculated based on your portfolio performance
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -135,16 +86,7 @@ const Dashboard: React.FC = () => {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="bg-gradient-to-r from-crypto-indigo to-crypto-blue text-white p-4 rounded-lg shadow-md"
       >
-<h2 className="text-xl font-semibold">
-  Welcome back,{' '}
-  {user?.displayName
-    ? formatName(user.displayName)
-    : user?.email
-    ? formatName(user.email.split('@')[0])
-    : 'User'}
-</h2>
-
-
+        <h2 className="text-xl font-semibold">Welcome back, {userName}</h2>
         <p className="text-sm mt-1">We're glad to have you here. Let's check your crypto performance today.</p>
       </motion.div>
 
@@ -155,13 +97,16 @@ const Dashboard: React.FC = () => {
         transition={{ delay: 0.2 }}
         className="balance-card relative p-6 rounded-lg shadow-md bg-white"
       >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-crypto-blue opacity-5 rounded-full -mr-20 -mt-20" />
+        <div className="absolute bottom-0 left-0 w-40 h-40 bg-crypto-indigo opacity-5 rounded-full -ml-10 -mb-10" />
+        
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-600">Total Balance</h2>
         </div>
 
         <div className="flex items-center space-x-2">
           <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? formatCurrency(dashboardData.totalBalance) : "••••••••"}
+            {isBalanceVisible ? "$0.00" : "••••••••"}
           </h3>
           <button 
             onClick={toggleBalanceVisibility}
@@ -173,12 +118,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Dynamic Percentage Change */}
-        <div className="mt-2">
-          <PercentageChange 
-            value={dashboardData.portfolioGrowth} 
-            suffix={`${formatCurrency(dashboardData.totalBalance * (dashboardData.portfolioGrowth / 100))} today`} 
-          />
-        </div>
+        <PercentageChange value={portfolioGrowth} suffix="$0.00 today" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
@@ -208,22 +148,22 @@ const Dashboard: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           title="Portfolio Growth"
-          value={`${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%`}
+          value={`${portfolioGrowth >= 0 ? '+' : ''}${portfolioGrowth.toFixed(2)}%`}
           subtitle="Latest Updated"
-          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
+          trend={portfolioGrowth >= 0 ? "up" : "down"}
           icon={TrendingUp}
         />
         <StatCard 
           title="Active Wallets"
-          value={dashboardData.activeWallets.toString()}
+          value="0"
           subtitle="Last updated today"
           icon={Wallet}
         />
         <StatCard 
           title="Top Performer"
-          value={dashboardData.topPerformer || "None"}
-          subtitle={dashboardData.topPerformer ? `${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%` : "No data"}
-          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
+          value={marketTrends[0]?.name || "Loading..."}
+          subtitle={marketTrends[0] ? `${marketTrends[0].price_change_percentage_24h >= 0 ? '+' : ''}${marketTrends[0].price_change_percentage_24h.toFixed(2)}% today` : "Loading..."}
+          trend={marketTrends[0]?.price_change_percentage_24h >= 0 ? "up" : "down"}
           icon={Bitcoin}
         />
       </section>
@@ -261,6 +201,12 @@ const Dashboard: React.FC = () => {
                       src={coin.image} 
                       alt={coin.name}
                       className="w-10 h-10 rounded-full mr-3"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                        target.className = 'w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 mr-3';
+                        target.textContent = coin.symbol.charAt(0);
+                      }}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 mr-3">
@@ -274,7 +220,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 
                 <div className="text-right">
-                  <p className="font-medium">${coin.current_price.toLocaleString()}</p>
+                  <p className="font-medium">${coin.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}</p>
                   <PercentageChange value={coin.price_change_percentage_24h} />
                 </div>
               </div>
@@ -302,7 +248,6 @@ const Dashboard: React.FC = () => {
   );
 };
 
-// ... (Keep your existing StatCard and PercentageChange components) ...
 interface StatCardProps {
   title: string;
   value: string;
