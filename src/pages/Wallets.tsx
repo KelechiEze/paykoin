@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/firebase';
 import { useAuth } from '../context/AuthContext';
-import { writeBatch } from 'firebase/firestore';
-import {
+import { 
   doc,
   collection,
   getDoc,
@@ -15,7 +14,9 @@ import {
   query,
   where,
   onSnapshot,
-  serverTimestamp
+  getDocs,
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 
 interface Cryptocurrency {
@@ -44,6 +45,8 @@ interface Transaction {
   note?: string;
   fiatAmount?: number;
   fiatCurrency?: string;
+  symbol?: string;
+  total?: number;
 }
 
 interface CGCoin {
@@ -121,14 +124,6 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
   );
 };
 
-/* ===========================================
-   TO RE-ENABLE WITHDRAWAL FUNCTIONALITY:
-   1. Remove the comment block below (from line 108 to 345)
-   2. Uncomment the Withdraw button in CryptoDetail component
-   3. Uncomment the WithdrawModal usage in CryptoDetail
-   4. Uncomment the handleWithdrawSuccess function in CryptoDetail
-=========================================== */
-/*
 const WithdrawModal = ({ 
   crypto, 
   onClose,
@@ -138,7 +133,7 @@ const WithdrawModal = ({
   onClose: () => void;
   onWithdrawSuccess: () => void;
 }) => {
-  const [recipientAddress, setRecipientAddress] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [amount, setAmount] = useState('');
   const [fiatAmount, setFiatAmount] = useState('');
   const [fiatCurrency, setFiatCurrency] = useState('USD');
@@ -153,27 +148,31 @@ const WithdrawModal = ({
   const handleWithdraw = async () => {
     if (!currentUser) {
       console.log("No current user logged in.");
+      toast({
+        variant: "destructive",
+        description: "You must be logged in to transfer crypto",
+      });
       return;
     }
-
-    console.log("Current user:", currentUser);
 
     const withdrawAmount = parseFloat(amount);
     if (isNaN(withdrawAmount)) {
       setError('Please enter a valid amount');
-      console.log("Invalid amount entered:", amount);
       return;
     }
 
     if (withdrawAmount <= 0) {
       setError('Amount must be greater than zero');
-      console.log("Amount is not greater than zero:", withdrawAmount);
       return;
     }
 
-    if (!recipientAddress || recipientAddress.length < 10) {
-      setError('Please enter a valid wallet address');
-      console.log("Invalid recipient address:", recipientAddress);
+    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (recipientEmail === currentUser.email) {
+      setError('You cannot send to your own email');
       return;
     }
 
@@ -182,64 +181,107 @@ const WithdrawModal = ({
 
     if (totalDeduction > crypto.balance) {
       setError(`Insufficient balance. You need at least ${totalDeduction.toFixed(8)} ${crypto.symbol}`);
-      console.log("Insufficient balance. Required:", totalDeduction, "Available:", crypto.balance);
       return;
     }
 
     setIsWithdrawing(true);
     setError('');
-    console.log("Initiating withdrawal transaction...");
 
     try {
-      const walletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
-      const newBalance = crypto.balance - totalDeduction;
-
+      // Find recipient by email
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', recipientEmail));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setError('No user found with this email');
+        return;
+      }
+      
+      const recipientDoc = querySnapshot.docs[0];
+      const recipientId = recipientDoc.id;
+      const recipientData = recipientDoc.data();
+      
+      // Find recipient's wallet for the same cryptocurrency
+      const walletsRef = collection(db, 'users', recipientId, 'wallets');
+      const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
+      const walletSnapshot = await getDocs(walletQuery);
+      
+      if (walletSnapshot.empty) {
+        setError('Recipient does not have a wallet for this cryptocurrency');
+        return;
+      }
+      
+      const recipientWallet = walletSnapshot.docs[0];
+      const recipientWalletData = recipientWallet.data();
+      
       const batch = writeBatch(db);
-
-      // Update wallet balance
-      batch.update(walletRef, {
-        cryptoBalance: newBalance
+      
+      // Update sender's wallet
+      const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
+      const senderNewBalance = crypto.balance - totalDeduction;
+      
+      batch.update(senderWalletRef, {
+        cryptoBalance: senderNewBalance
       });
-      console.log("Prepared wallet balance update");
-
-      // Add withdrawal transaction
-      const txRef = doc(collection(walletRef, 'transactions'));
-      batch.set(txRef, {
+      
+      // Add withdrawal transaction to sender
+      const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
+      batch.set(senderTxRef, {
         type: 'withdrawal',
         amount: withdrawAmount,
         fee: fee,
         total: totalDeduction,
         date: serverTimestamp(),
         status: 'completed',
-        to: recipientAddress,
-        note: `Withdrawn to external wallet`,
+        to: recipientEmail,
+        note: `Sent to ${recipientEmail}`,
         symbol: crypto.symbol,
         fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
         fiatCurrency: fiatCurrency
       });
-      console.log("Prepared withdrawal transaction");
-
+      
+      // Update recipient's wallet
+      const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
+      const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
+      
+      batch.update(recipientWalletRef, {
+        cryptoBalance: recipientNewBalance
+      });
+      
+      // Add deposit transaction to recipient
+      const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
+      batch.set(recipientTxRef, {
+        type: 'deposit',
+        amount: withdrawAmount,
+        date: serverTimestamp(),
+        status: 'completed',
+        from: currentUser.email,
+        note: `Received from ${currentUser.email}`,
+        symbol: crypto.symbol,
+        fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
+        fiatCurrency: fiatCurrency
+      });
+      
       await batch.commit();
-      console.log("Batch committed successfully");
 
       toast({
-        title: 'Withdrawal successful!',
-        description: `${withdrawAmount.toFixed(6)} ${crypto.symbol} withdrawn to external wallet`,
+        title: 'Transfer successful!',
+        description: `${withdrawAmount.toFixed(6)} ${crypto.symbol} sent to ${recipientEmail}`,
       });
 
       onWithdrawSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Error withdrawing crypto:', err);
-      setError('Failed to withdraw. Please try again later.');
+      console.error('Error transferring crypto:', err);
+      setError('Failed to transfer. Please try again later.');
       toast({
         variant: 'destructive',
-        title: 'Withdrawal failed',
-        description: err.message || 'There was an error processing your withdrawal',
+        title: 'Transfer failed',
+        description: err.message || 'There was an error processing your transfer',
       });
     } finally {
       setIsWithdrawing(false);
-      console.log("Withdrawal process finished.");
     }
   };
 
@@ -275,7 +317,7 @@ const WithdrawModal = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="bg-white rounded-xl max-w-md w-full p-6 animate-scale-in">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold">Withdraw {crypto.name}</h3>
+          <h3 className="text-xl font-semibold">Transfer {crypto.name}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             &times;
           </button>
@@ -283,14 +325,17 @@ const WithdrawModal = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">Recipient Wallet Address</label>
+            <label className="block text-gray-700 mb-2">Recipient Email Address</label>
             <input
-              type="text"
-              placeholder={`Enter ${crypto.symbol} wallet address`}
+              type="email"
+              placeholder="Enter recipient's email"
               className="w-full p-3 border rounded-lg"
-              value={recipientAddress}
-              onChange={(e) => setRecipientAddress(e.target.value)}
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              The recipient must have a registered account and a {crypto.symbol} wallet
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -342,7 +387,7 @@ const WithdrawModal = ({
               <span>0.5% (min 0.0001 {crypto.symbol})</span>
             </div>
             <div className="flex justify-between font-medium">
-              <span>Total to withdraw</span>
+              <span>Total to transfer</span>
               <span>
                 {amount
                   ? `${(parseFloat(amount) + Math.max(0.0001, parseFloat(amount) * 0.005)).toFixed(8)} ${crypto.symbol}`
@@ -358,14 +403,14 @@ const WithdrawModal = ({
             disabled={isWithdrawing}
             className="w-full py-3 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50"
           >
-            {isWithdrawing ? 'Processing Withdrawal...' : 'Withdraw Now'}
+            {isWithdrawing ? 'Processing Transfer...' : 'Transfer Now'}
           </button>
         </div>
       </div>
     </div>
   );
 };
-*/
+
 const AddCryptoModal = ({ 
   onClose, 
   onAdd,
@@ -761,7 +806,7 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
 const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = ({ crypto, onBack }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
-  // const [showWithdrawModal, setShowWithdrawModal] = useState(false); // Uncomment for withdrawal
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const { toast } = useToast();
   const [localCrypto, setLocalCrypto] = useState(crypto);
   
@@ -770,7 +815,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     setLocalCrypto(crypto);
   }, [crypto]);
   
-  /* Uncomment for withdrawal functionality
   const handleWithdrawSuccess = () => {
     const latestTransaction = localCrypto.transactions?.[0];
     const totalStr = latestTransaction?.total ?? "0";
@@ -781,7 +825,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       balance: prev.balance - (isNaN(total) ? 0 : total),
     }));
   };
-  */
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(localCrypto.address)
@@ -831,7 +874,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <TransferModal crypto={localCrypto} onClose={() => setShowTransferModal(false)} />
       )}
       
-      {/* Uncomment for withdrawal functionality
       {showWithdrawModal && (
         <WithdrawModal 
           crypto={localCrypto} 
@@ -839,7 +881,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
           onWithdrawSuccess={handleWithdrawSuccess}
         />
       )}
-      */}
       
       <button 
         onClick={onBack}
@@ -910,15 +951,13 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <span>Deposit</span>
             </button>
            
-            {/* Uncomment for withdrawal functionality
             <button 
               onClick={() => setShowWithdrawModal(true)}
               className="flex items-center py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors"
             >
               <ArrowDown size={16} className="mr-2" />
-              <span>Withdraw</span>
+              <span>Send to Email</span>
             </button>
-            */}
 
             <button 
               onClick={handleViewOnExplorer}
@@ -943,7 +982,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                     <p className="text-sm font-medium capitalize">{tx.type}</p>
                     <p className="text-xs text-gray-500">
                       {tx.date.toLocaleString()}
-                      {tx.type === 'withdrawal' && tx.to && `To: ${tx.to.slice(0, 6)}...${tx.to.slice(-4)}`}
+                      {tx.type === 'withdrawal' && tx.to && `To: ${tx.to}`}
                       {tx.type === 'received' && tx.from && `From: ${tx.from}`}
                     </p>
                     {tx.fiatAmount && tx.fiatCurrency && (

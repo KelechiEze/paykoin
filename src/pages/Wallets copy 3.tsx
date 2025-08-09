@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/firebase';
 import { useAuth } from '../context/AuthContext';
-import { writeBatch } from 'firebase/firestore';
-import {
+import { 
   doc,
   collection,
   getDoc,
@@ -16,7 +15,8 @@ import {
   where,
   onSnapshot,
   getDocs,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 
 interface Cryptocurrency {
@@ -45,6 +45,8 @@ interface Transaction {
   note?: string;
   fiatAmount?: number;
   fiatCurrency?: string;
+  symbol?: string;
+  total?: number;
 }
 
 interface CGCoin {
@@ -146,6 +148,10 @@ const WithdrawModal = ({
   const handleWithdraw = async () => {
     if (!currentUser) {
       console.log("No current user logged in.");
+      toast({
+        variant: "destructive",
+        description: "You must be logged in to transfer crypto",
+      });
       return;
     }
 
@@ -192,11 +198,12 @@ const WithdrawModal = ({
         return;
       }
       
-      const recipient = querySnapshot.docs[0];
-      const recipientData = recipient.data();
+      const recipientDoc = querySnapshot.docs[0];
+      const recipientId = recipientDoc.id;
+      const recipientData = recipientDoc.data();
       
       // Find recipient's wallet for the same cryptocurrency
-      const walletsRef = collection(db, 'users', recipient.id, 'wallets');
+      const walletsRef = collection(db, 'users', recipientId, 'wallets');
       const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
       const walletSnapshot = await getDocs(walletQuery);
       
@@ -235,7 +242,7 @@ const WithdrawModal = ({
       });
       
       // Update recipient's wallet
-      const recipientWalletRef = doc(db, 'users', recipient.id, 'wallets', recipientWallet.id);
+      const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
       const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
       
       batch.update(recipientWalletRef, {
