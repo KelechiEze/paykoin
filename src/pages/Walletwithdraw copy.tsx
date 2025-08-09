@@ -128,7 +128,7 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
    3. Uncomment the WithdrawModal usage in CryptoDetail
    4. Uncomment the handleWithdrawSuccess function in CryptoDetail
 =========================================== */
-/*
+
 const WithdrawModal = ({ 
   crypto, 
   onClose,
@@ -365,7 +365,7 @@ const WithdrawModal = ({
     </div>
   );
 };
-*/
+
 const AddCryptoModal = ({ 
   onClose, 
   onAdd,
@@ -761,16 +761,15 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
 const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = ({ crypto, onBack }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
-  // const [showWithdrawModal, setShowWithdrawModal] = useState(false); // Uncomment for withdrawal
+   const [showWithdrawModal, setShowWithdrawModal] = useState(false); // Uncomment for withdrawal
   const { toast } = useToast();
   const [localCrypto, setLocalCrypto] = useState(crypto);
   
-  // Update local state when prop changes
   useEffect(() => {
     setLocalCrypto(crypto);
   }, [crypto]);
   
-  /* Uncomment for withdrawal functionality
+  {/* Uncomment for withdrawal functionality */}
   const handleWithdrawSuccess = () => {
     const latestTransaction = localCrypto.transactions?.[0];
     const totalStr = latestTransaction?.total ?? "0";
@@ -781,7 +780,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       balance: prev.balance - (isNaN(total) ? 0 : total),
     }));
   };
-  */
+  
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(localCrypto.address)
@@ -831,7 +830,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <TransferModal crypto={localCrypto} onClose={() => setShowTransferModal(false)} />
       )}
       
-      {/* Uncomment for withdrawal functionality
+      {/* Uncomment for withdrawal functionality*/}
       {showWithdrawModal && (
         <WithdrawModal 
           crypto={localCrypto} 
@@ -839,7 +838,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
           onWithdrawSuccess={handleWithdrawSuccess}
         />
       )}
-      */}
+      
       
       <button 
         onClick={onBack}
@@ -910,7 +909,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <span>Deposit</span>
             </button>
            
-            {/* Uncomment for withdrawal functionality
+            {/* Uncomment for withdrawal functionality */}
             <button 
               onClick={() => setShowWithdrawModal(true)}
               className="flex items-center py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors"
@@ -918,7 +917,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <ArrowDown size={16} className="mr-2" />
               <span>Withdraw</span>
             </button>
-            */}
+            
 
             <button 
               onClick={handleViewOnExplorer}

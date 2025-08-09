@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, Send } from 'lucide-react';
+import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -10,9 +10,7 @@ import {
   doc,
   collection,
   getDoc,
-  getDocs,
   setDoc,
-  addDoc,
   updateDoc,
   query,
   where,
@@ -44,6 +42,8 @@ interface Transaction {
   from?: string;
   fee?: number;
   note?: string;
+  fiatAmount?: number;
+  fiatCurrency?: string;
 }
 
 interface CGCoin {
@@ -121,187 +121,161 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
   );
 };
 
-const SendModal = ({ 
+/* ===========================================
+   TO RE-ENABLE WITHDRAWAL FUNCTIONALITY:
+   1. Remove the comment block below (from line 108 to 345)
+   2. Uncomment the Withdraw button in CryptoDetail component
+   3. Uncomment the WithdrawModal usage in CryptoDetail
+   4. Uncomment the handleWithdrawSuccess function in CryptoDetail
+=========================================== */
+/*
+const WithdrawModal = ({ 
   crypto, 
   onClose,
-  onSendSuccess
+  onWithdrawSuccess
 }: { 
   crypto: Cryptocurrency; 
   onClose: () => void;
-  onSendSuccess: () => void;
+  onWithdrawSuccess: () => void;
 }) => {
-  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
   const [amount, setAmount] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [fiatAmount, setFiatAmount] = useState('');
+  const [fiatCurrency, setFiatCurrency] = useState('USD');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [error, setError] = useState('');
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
-const handleSend = async () => {
-  if (!currentUser) {
-    console.log("No current user logged in.");
-    return;
-  }
+  // Simulated exchange rate - in a real app this would come from an API
+  const exchangeRate = 1; // 1 crypto = 1 USD for simplicity
 
-  console.log("Current user:", currentUser);
-
-  const sendAmount = parseFloat(amount);
-  if (isNaN(sendAmount)) {
-    setError('Please enter a valid amount');
-    console.log("Invalid amount entered:", amount);
-    return;
-  }
-
-  if (sendAmount <= 0) {
-    setError('Amount must be greater than zero');
-    console.log("Amount is not greater than zero:", sendAmount);
-    return;
-  }
-
-  const fee = Math.max(0.0001, sendAmount * 0.005);
-  const totalDeduction = sendAmount + fee;
-
-  if (totalDeduction > crypto.balance) {
-    setError(`Insufficient balance. You need at least ${totalDeduction.toFixed(8)} ${crypto.symbol}`);
-    console.log("Insufficient balance. Required:", totalDeduction, "Available:", crypto.balance);
-    return;
-  }
-
-  if (!recipientEmail || !recipientEmail.includes('@')) {
-    setError('Please enter a valid recipient email');
-    console.log("Invalid recipient email:", recipientEmail);
-    return;
-  }
-
-  if (recipientEmail === currentUser.email) {
-    setError('You cannot send to yourself');
-    console.log("Attempted to send to self:", recipientEmail);
-    return;
-  }
-
-  setIsSending(true);
-  setError('');
-  console.log("Initiating send transaction...");
-
-  try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', recipientEmail));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      setError('User with this email not found');
-      console.log("Recipient not found for email:", recipientEmail);
-      setIsSending(false);
+  const handleWithdraw = async () => {
+    if (!currentUser) {
+      console.log("No current user logged in.");
       return;
     }
 
-    const recipientUser = querySnapshot.docs[0].data();
-    const recipientUserId = querySnapshot.docs[0].id;
+    console.log("Current user:", currentUser);
 
-    console.log("Recipient found:", recipientUserId, recipientUser);
-
-    const recipientWalletRef = doc(db, 'users', recipientUserId, 'wallets', crypto.id);
-    const recipientWalletSnap = await getDoc(recipientWalletRef);
-
-    const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
-    const newSenderBalance = crypto.balance - totalDeduction;
-
-    const batch = writeBatch(db);
-
-    // Update sender wallet
-    batch.update(senderWalletRef, {
-      cryptoBalance: newSenderBalance
-    });
-    console.log("Prepared sender wallet update");
-
-    const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
-    batch.set(senderTxRef, {
-      type: 'sent',
-      amount: sendAmount,
-      fee: fee,
-      total: totalDeduction,
-      date: serverTimestamp(),
-      status: 'completed',
-      to: recipientEmail,
-      note: `Sent to ${recipientEmail}`,
-      symbol: crypto.symbol
-    });
-    console.log("Prepared sender transaction");
-
-    let recipientWalletData: any;
-
-    if (!recipientWalletSnap.exists()) {
-      recipientWalletData = {
-        name: crypto.name,
-        symbol: crypto.symbol,
-        cryptoBalance: 0,
-        walletAddress: `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`,
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        change: 0,
-        isUp: false,
-        cgId: crypto.cgId,
-        createdAt: serverTimestamp()
-      };
-      batch.set(recipientWalletRef, recipientWalletData);
-      console.log("Recipient wallet does not exist. Preparing to create:", recipientWalletData);
-    } else {
-      recipientWalletData = recipientWalletSnap.data();
-      console.log("Recipient wallet exists:", recipientWalletData);
+    const withdrawAmount = parseFloat(amount);
+    if (isNaN(withdrawAmount)) {
+      setError('Please enter a valid amount');
+      console.log("Invalid amount entered:", amount);
+      return;
     }
 
-    const newRecipientBalance = (recipientWalletData.cryptoBalance || 0) + sendAmount;
+    if (withdrawAmount <= 0) {
+      setError('Amount must be greater than zero');
+      console.log("Amount is not greater than zero:", withdrawAmount);
+      return;
+    }
 
-    batch.update(recipientWalletRef, {
-      cryptoBalance: newRecipientBalance
-    });
-    console.log("Prepared recipient wallet update with balance:", newRecipientBalance);
+    if (!recipientAddress || recipientAddress.length < 10) {
+      setError('Please enter a valid wallet address');
+      console.log("Invalid recipient address:", recipientAddress);
+      return;
+    }
 
-    const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
-    batch.set(recipientTxRef, {
-      type: 'received',
-      amount: sendAmount,
-      date: serverTimestamp(),
-      status: 'completed',
-      from: currentUser.email,
-      note: `Received from ${currentUser.email}`,
-      symbol: crypto.symbol
-    });
-    console.log("Prepared recipient transaction");
+    const fee = Math.max(0.0001, withdrawAmount * 0.005);
+    const totalDeduction = withdrawAmount + fee;
 
-    await batch.commit();
-    console.log("Batch committed successfully");
+    if (totalDeduction > crypto.balance) {
+      setError(`Insufficient balance. You need at least ${totalDeduction.toFixed(8)} ${crypto.symbol}`);
+      console.log("Insufficient balance. Required:", totalDeduction, "Available:", crypto.balance);
+      return;
+    }
 
-    toast({
-      title: 'Transfer successful!',
-      description: `${sendAmount} ${crypto.symbol} sent to ${recipientEmail}`,
-    });
+    setIsWithdrawing(true);
+    setError('');
+    console.log("Initiating withdrawal transaction...");
 
-    onSendSuccess();
-    onClose();
-  } catch (err: any) {
-    console.error('Error sending crypto:', err);
-    setError('Failed to send. Please try again later.');
-    toast({
-      variant: 'destructive',
-      title: 'Transfer failed',
-      description: err.message || 'There was an error processing your transfer',
-    });
-  } finally {
-    setIsSending(false);
-    console.log("Send process finished.");
-  }
-};
+    try {
+      const walletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
+      const newBalance = crypto.balance - totalDeduction;
+
+      const batch = writeBatch(db);
+
+      // Update wallet balance
+      batch.update(walletRef, {
+        cryptoBalance: newBalance
+      });
+      console.log("Prepared wallet balance update");
+
+      // Add withdrawal transaction
+      const txRef = doc(collection(walletRef, 'transactions'));
+      batch.set(txRef, {
+        type: 'withdrawal',
+        amount: withdrawAmount,
+        fee: fee,
+        total: totalDeduction,
+        date: serverTimestamp(),
+        status: 'completed',
+        to: recipientAddress,
+        note: `Withdrawn to external wallet`,
+        symbol: crypto.symbol,
+        fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
+        fiatCurrency: fiatCurrency
+      });
+      console.log("Prepared withdrawal transaction");
+
+      await batch.commit();
+      console.log("Batch committed successfully");
+
+      toast({
+        title: 'Withdrawal successful!',
+        description: `${withdrawAmount.toFixed(6)} ${crypto.symbol} withdrawn to external wallet`,
+      });
+
+      onWithdrawSuccess();
+      onClose();
+    } catch (err: any) {
+      console.error('Error withdrawing crypto:', err);
+      setError('Failed to withdraw. Please try again later.');
+      toast({
+        variant: 'destructive',
+        title: 'Withdrawal failed',
+        description: err.message || 'There was an error processing your withdrawal',
+      });
+    } finally {
+      setIsWithdrawing(false);
+      console.log("Withdrawal process finished.");
+    }
+  };
 
   const handleMaxAmount = () => {
     const maxAmount = Math.max(0, crypto.balance - 0.0001);
     setAmount(maxAmount.toFixed(8));
+    if (exchangeRate) {
+      setFiatAmount((maxAmount * exchangeRate).toFixed(2));
+    }
   };
+
+  // Update fiat amount when crypto amount changes
+  useEffect(() => {
+    if (amount && exchangeRate) {
+      const cryptoValue = parseFloat(amount);
+      if (!isNaN(cryptoValue)) {
+        setFiatAmount((cryptoValue * exchangeRate).toFixed(2));
+      }
+    }
+  }, [amount]);
+
+  // Update crypto amount when fiat amount changes
+  useEffect(() => {
+    if (fiatAmount && exchangeRate) {
+      const fiatValue = parseFloat(fiatAmount);
+      if (!isNaN(fiatValue)) {
+        setAmount((fiatValue / exchangeRate).toFixed(8));
+      }
+    }
+  }, [fiatAmount]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="bg-white rounded-xl max-w-md w-full p-6 animate-scale-in">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold">Send {crypto.name}</h3>
+          <h3 className="text-xl font-semibold">Withdraw {crypto.name}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             &times;
           </button>
@@ -309,35 +283,56 @@ const handleSend = async () => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-gray-700 mb-2">Recipient Email</label>
+            <label className="block text-gray-700 mb-2">Recipient Wallet Address</label>
             <input
-              type="email"
-              placeholder="Enter recipient's email"
+              type="text"
+              placeholder={`Enter ${crypto.symbol} wallet address`}
               className="w-full p-3 border rounded-lg"
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
+              value={recipientAddress}
+              onChange={(e) => setRecipientAddress(e.target.value)}
             />
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-gray-700">Amount ({crypto.symbol})</label>
-              <button
-                onClick={handleMaxAmount}
-                className="text-xs text-crypto-blue hover:underline"
-              >
-                Max: {crypto.balance.toFixed(8)}
-              </button>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-gray-700">Amount ({crypto.symbol})</label>
+                <button
+                  onClick={handleMaxAmount}
+                  className="text-xs text-crypto-blue hover:underline"
+                >
+                  Max: {crypto.balance.toFixed(8)}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="w-full p-3 border rounded-lg pl-10"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+                <span className="absolute left-3 top-3.5 text-gray-500">{crypto.symbol}</span>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type="number"
-                placeholder="0.00"
-                className="w-full p-3 border rounded-lg pl-10"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <span className="absolute left-3 top-3.5 text-gray-500">{crypto.symbol}</span>
+
+            <div>
+              <label className="block text-gray-700 mb-2">Local Currency</label>
+              <div className="relative">
+                <select
+                  className="w-full p-3 border rounded-lg pr-10 appearance-none"
+                  value={fiatCurrency}
+                  onChange={(e) => setFiatCurrency(e.target.value)}
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="JPY">JPY</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <ArrowDown size={16} />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -347,7 +342,7 @@ const handleSend = async () => {
               <span>0.5% (min 0.0001 {crypto.symbol})</span>
             </div>
             <div className="flex justify-between font-medium">
-              <span>Total to send</span>
+              <span>Total to withdraw</span>
               <span>
                 {amount
                   ? `${(parseFloat(amount) + Math.max(0.0001, parseFloat(amount) * 0.005)).toFixed(8)} ${crypto.symbol}`
@@ -359,17 +354,18 @@ const handleSend = async () => {
           {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
 
           <button
-            onClick={handleSend}
-            disabled={isSending}
+            onClick={handleWithdraw}
+            disabled={isWithdrawing}
             className="w-full py-3 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50"
           >
-            {isSending ? 'Sending...' : 'Send Now'}
+            {isWithdrawing ? 'Processing Withdrawal...' : 'Withdraw Now'}
           </button>
         </div>
       </div>
     </div>
   );
 };
+*/
 const AddCryptoModal = ({ 
   onClose, 
   onAdd,
@@ -765,7 +761,7 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
 const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = ({ crypto, onBack }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showSendModal, setShowSendModal] = useState(false);
+  // const [showWithdrawModal, setShowWithdrawModal] = useState(false); // Uncomment for withdrawal
   const { toast } = useToast();
   const [localCrypto, setLocalCrypto] = useState(crypto);
   
@@ -774,17 +770,18 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     setLocalCrypto(crypto);
   }, [crypto]);
   
-  const handleSendSuccess = () => {
-  const latestTransaction = localCrypto.transactions?.[0];
-  const totalStr = latestTransaction?.total ?? "0";
-  const total = parseFloat(totalStr);
+  /* Uncomment for withdrawal functionality
+  const handleWithdrawSuccess = () => {
+    const latestTransaction = localCrypto.transactions?.[0];
+    const totalStr = latestTransaction?.total ?? "0";
+    const total = parseFloat(totalStr);
 
-  setLocalCrypto((prev) => ({
-    ...prev,
-    balance: prev.balance - (isNaN(total) ? 0 : total),
-  }));
-};
-
+    setLocalCrypto((prev) => ({
+      ...prev,
+      balance: prev.balance - (isNaN(total) ? 0 : total),
+    }));
+  };
+  */
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(localCrypto.address)
@@ -834,13 +831,15 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <TransferModal crypto={localCrypto} onClose={() => setShowTransferModal(false)} />
       )}
       
-      {showSendModal && (
-        <SendModal 
+      {/* Uncomment for withdrawal functionality
+      {showWithdrawModal && (
+        <WithdrawModal 
           crypto={localCrypto} 
-          onClose={() => setShowSendModal(false)}
-          onSendSuccess={handleSendSuccess}
+          onClose={() => setShowWithdrawModal(false)}
+          onWithdrawSuccess={handleWithdrawSuccess}
         />
       )}
+      */}
       
       <button 
         onClick={onBack}
@@ -910,13 +909,17 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <DollarSign size={16} className="mr-2" />
               <span>Deposit</span>
             </button>
+           
+            {/* Uncomment for withdrawal functionality
             <button 
-              onClick={() => setShowSendModal(true)}
-              className="flex items-center py-2.5 px-4 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+              onClick={() => setShowWithdrawModal(true)}
+              className="flex items-center py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors"
             >
-              <Send size={16} className="mr-2" />
-              <span>Send</span>
+              <ArrowDown size={16} className="mr-2" />
+              <span>Withdraw</span>
             </button>
+            */}
+
             <button 
               onClick={handleViewOnExplorer}
               className="flex items-center py-2.5 px-4 rounded-lg border border-gray-200 font-medium hover:bg-gray-50 transition-colors"
@@ -940,9 +943,14 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                     <p className="text-sm font-medium capitalize">{tx.type}</p>
                     <p className="text-xs text-gray-500">
                       {tx.date.toLocaleString()}
-                      {tx.type === 'sent' && tx.to && `To: ${tx.to}`}
+                      {tx.type === 'withdrawal' && tx.to && `To: ${tx.to.slice(0, 6)}...${tx.to.slice(-4)}`}
                       {tx.type === 'received' && tx.from && `From: ${tx.from}`}
                     </p>
+                    {tx.fiatAmount && tx.fiatCurrency && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        ≈ {tx.fiatAmount} {tx.fiatCurrency}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className={`text-sm font-semibold ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-red-500'}`}>
