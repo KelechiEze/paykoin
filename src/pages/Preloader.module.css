@@ -1,0 +1,77 @@
+.funnyPreloaderPage {
+  position: fixed; /* Fill entire viewport */
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: hsl(0 0% 100%);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.funnyBlinkHeading {
+  font-size: clamp(4rem, 20vw, 18rem);
+  font-weight: 800;
+  line-height: 1;
+  color: hsl(205 100% 60%);
+  animation: funny-blink 2.4s ease-in-out infinite;
+  user-select: none;
+  margin: 0;
+}
+
+.funnyLoader {
+  width: min(80vw, 560px);
+  height: 2px;
+  position: relative;
+  margin-top: 16px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.funnyLoader::before,
+.funnyLoader::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: hsl(205 100% 60%);
+  transform: scaleX(0);
+  will-change: transform, opacity;
+}
+
+.funnyLoader::before {
+  transform-origin: left;
+  animation: funny-bar-grow 2.4s ease-in-out infinite;
+}
+
+.funnyLoader::after {
+  transform-origin: right;
+  animation: funny-bar-grow 2.4s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+@keyframes funny-blink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+@keyframes funny-bar-grow {
+  0% { opacity: 1; transform: scaleX(0); }
+  45% { opacity: 1; transform: scaleX(1); }
+  50% { opacity: 0; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+
+@media (max-width: 800px) {
+  .funnyBlinkHeading {
+    font-size: clamp(6rem, 30vw, 12rem);
+  }
+  .funnyLoader {
+    width: min(88vw, 560px);
+  }
+}
