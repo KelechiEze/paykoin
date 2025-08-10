@@ -956,7 +956,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               className="flex items-center py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors"
             >
               <ArrowDown size={16} className="mr-2" />
-              <span>Send to Email</span>
+              <span>Send</span>
             </button>
 
             <button 
