@@ -7,6 +7,8 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/layout/AuthLayout';
+import { auth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const Login = () => {
   const [email, setEmail] = useState<string>('');
@@ -28,41 +30,49 @@ const Login = () => {
       return;
     }
     
-    // Simulate login process
     setIsLoading(true);
-    
-    setTimeout(() => {
+
+    try {
+      // 1. Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // 2. Show success message
+      toast({
+        title: "Login Successful",
+        description: `Welcome back!`,
+      });
+
+      // 3. Redirect to dashboard
+      navigate('/dashboard');
+
+    } catch (error: any) {
+      let errorMessage = "Login failed. Please try again.";
+      
+      // Handle specific Firebase errors
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = "No account found with this email.";
+          break;
+        case 'auth/wrong-password':
+          errorMessage = "Incorrect password.";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email format.";
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = "Too many attempts. Account temporarily locked.";
+          break;
+      }
+
+      toast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      
-      // Get stored user data
-      const storedUserDataString = localStorage.getItem('userData');
-      
-      if (!storedUserDataString) {
-        toast({
-          title: "Error",
-          description: "No account found. Please sign up first.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const userData = JSON.parse(storedUserDataString);
-      
-      // Check if login credentials match
-      if (userData.email === email && userData.password === password) {
-        toast({
-          title: "Success",
-          description: "You have successfully logged in!",
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }, 1500);
+    }
   };
 
   return (

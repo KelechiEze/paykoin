@@ -163,7 +163,7 @@ export const PreferencesSettings: React.FC = () => {
     <div className="space-y-6">
       <div className={cn(
         "p-4 rounded-xl border",
-        darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100"
+        darkMode ? "border-gray-700" : "border-gray-100"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -174,12 +174,10 @@ export const PreferencesSettings: React.FC = () => {
               {darkMode ? <Moon size={18} /> : <Sun size={18} />}
             </div>
             <div>
-              <h3 className={cn("font-medium", darkMode ? "text-white" : "text-gray-900")}>
-                {translate('Dark Mode')}
-              </h3>
+              <h3 className="font-medium">{translate('Dark Mode')}</h3>
               <p className={cn(
                 "text-sm",
-                darkMode ? "text-gray-400" : "text-gray-600"
+                darkMode ? "text-gray-400" : "text-gray-500"
               )}>{translate('Switch between light and dark theme')}</p>
             </div>
           </div>
@@ -197,7 +195,7 @@ export const PreferencesSettings: React.FC = () => {
       
       <div className={cn(
         "p-4 rounded-xl border",
-        darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100"
+        darkMode ? "border-gray-700" : "border-gray-100"
       )}>
         <div className="flex items-center mb-4">
           <div className={cn(
@@ -207,12 +205,10 @@ export const PreferencesSettings: React.FC = () => {
             <Languages size={18} />
           </div>
           <div>
-            <h3 className={cn("font-medium", darkMode ? "text-white" : "text-gray-900")}>
-              {translate('Language')}
-            </h3>
+            <h3 className="font-medium">{translate('Language')}</h3>
             <p className={cn(
               "text-sm",
-              darkMode ? "text-gray-400" : "text-gray-600"
+              darkMode ? "text-gray-400" : "text-gray-500"
             )}>{translate('Select your preferred language')}</p>
           </div>
         </div>
@@ -229,8 +225,8 @@ export const PreferencesSettings: React.FC = () => {
                     ? "bg-crypto-blue/20 text-crypto-blue" 
                     : "bg-crypto-blue/10 text-crypto-blue"
                   : darkMode
-                    ? "hover:bg-gray-700 text-gray-200"
-                    : "hover:bg-gray-50 text-gray-900"
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-gray-50"
               )}
             >
               {languageNames[lang]}
@@ -244,7 +240,7 @@ export const PreferencesSettings: React.FC = () => {
       
       <div className={cn(
         "p-4 rounded-xl border",
-        darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-100"
+        darkMode ? "border-gray-700" : "border-gray-100"
       )}>
         <div className="flex items-center mb-4">
           <div className={cn(
@@ -254,12 +250,10 @@ export const PreferencesSettings: React.FC = () => {
             <DollarSign size={18} />
           </div>
           <div>
-            <h3 className={cn("font-medium", darkMode ? "text-white" : "text-gray-900")}>
-              {translate('Currency')}
-            </h3>
+            <h3 className="font-medium">{translate('Currency')}</h3>
             <p className={cn(
               "text-sm",
-              darkMode ? "text-gray-400" : "text-gray-600"
+              darkMode ? "text-gray-400" : "text-gray-500"
             )}>{translate('Select your preferred display currency')}</p>
           </div>
         </div>
@@ -276,8 +270,8 @@ export const PreferencesSettings: React.FC = () => {
                     ? "bg-crypto-blue/20 text-crypto-blue" 
                     : "bg-crypto-blue/10 text-crypto-blue"
                   : darkMode
-                    ? "hover:bg-gray-700 text-gray-200"
-                    : "hover:bg-gray-50 text-gray-900"
+                    ? "hover:bg-gray-700"
+                    : "hover:bg-gray-50"
               )}
             >
               {translate(curr.name)}

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -8,13 +8,22 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { auth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 const Login = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isForgotPasswordLoading, setIsForgotPasswordLoading] = useState<boolean>(false);
+  const [showResetSentModal, setShowResetSentModal] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -33,23 +42,19 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // 1. Authenticate with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Show success message
       toast({
         title: "Login Successful",
         description: `Welcome back!`,
       });
 
-      // 3. Redirect to dashboard
       navigate('/dashboard');
 
     } catch (error: any) {
       let errorMessage = "Login failed. Please try again.";
       
-      // Handle specific Firebase errors
       switch (error.code) {
         case 'auth/user-not-found':
           errorMessage = "No account found with this email.";
@@ -72,6 +77,46 @@ const Login = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsForgotPasswordLoading(true);
+
+    try {
+      // Show spinner for 4 seconds regardless of how fast Firebase responds
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      // Send password reset email
+      await sendPasswordResetEmail(auth, email);
+      
+      // Show success modal
+      setShowResetSentModal(true);
+    } catch (error: any) {
+      let errorMessage = "Failed to send reset email. Please try again.";
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email.";
+      }
+
+      toast({
+        title: "Reset Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsForgotPasswordLoading(false);
     }
   };
 
@@ -106,9 +151,20 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/forgot-password" className="text-sm text-crypto-blue hover:underline">
-                    Forgot password?
-                  </Link>
+                  <button
+                    onClick={handleForgotPassword}
+                    disabled={isForgotPasswordLoading}
+                    className="text-sm text-crypto-blue hover:underline disabled:text-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isForgotPasswordLoading ? (
+                      <span className="flex items-center">
+                        <Loader className="h-4 w-4 mr-1 animate-spin" />
+                        Sending...
+                      </span>
+                    ) : (
+                      "Forgot password?"
+                    )}
+                  </button>
                 </div>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -121,13 +177,14 @@ const Login = () => {
                     className="pl-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isLoading || isForgotPasswordLoading}
                     autoComplete="current-password"
                   />
                   <button
                     type="button"
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading || isForgotPasswordLoading}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -137,9 +194,14 @@ const Login = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isLoading}
+                disabled={isLoading || isForgotPasswordLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <Loader className="h-4 w-4 mr-2 animate-spin" />
+                    Signing in...
+                  </span>
+                ) : "Sign in"}
               </Button>
             </div>
           </CardContent>
@@ -154,6 +216,37 @@ const Login = () => {
           </p>
         </CardFooter>
       </Card>
+
+      {/* Password Reset Confirmation Modal */}
+      <Dialog open={showResetSentModal} onOpenChange={setShowResetSentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Email Sent</DialogTitle>
+            <DialogDescription>
+              A password reset link has been sent to:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <div className="grid flex-1 gap-2">
+              <div className="p-3 rounded-lg bg-gray-100 text-center">
+                <span className="font-medium">{email}</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Please check your inbox and follow the instructions to reset your password.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button 
+              type="button" 
+              onClick={() => setShowResetSentModal(false)}
+              className="mt-2"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AuthLayout>
   );
 };

@@ -19,6 +19,61 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
+// Notification utility functions
+const sendEmailNotification = (message: string) => {
+  console.log(`[EMAIL] ${message}`);
+  // In real app: API call to email service
+};
+
+const sendPushNotification = (title: string, body: string) => {
+  console.log(`[PUSH] ${title}: ${body}`);
+  // In real app: Use Firebase Cloud Messaging
+};
+
+const sendSMSNotification = (message: string) => {
+  console.log(`[SMS] ${message}`);
+  // In real app: API call to SMS service
+};
+
+const triggerNotifications = (
+  settings: any,
+  notificationData: {
+    type: 'transaction' | 'security' | 'price';
+    title: string;
+    message: string;
+  }
+) => {
+  const { type, title, message } = notificationData;
+
+  try {
+    // Transaction notifications
+    if (type === 'transaction') {
+      if (settings.emailNotifs) sendEmailNotification(message);
+      if (settings.pushNotifs) sendPushNotification(title, message);
+    }
+    
+    // Security alerts
+    if (type === 'security' && settings.securityAlerts) {
+      sendEmailNotification(`SECURITY ALERT: ${message}`);
+      sendSMSNotification(`Security Alert: ${message}`);
+    }
+    
+    // Price alerts
+    if (type === 'price' && settings.priceAlerts) {
+      sendPushNotification('Price Alert', message);
+    }
+
+  } catch (error) {
+    console.error('Error sending notifications:', error);
+    // Fallback toast if notifications fail
+    toast({
+      variant: 'destructive',
+      title: 'Notification Failed',
+      description: 'Failed to send notifications',
+    });
+  }
+};
+
 interface Cryptocurrency {
   id: string;
   name: string;
@@ -66,6 +121,7 @@ interface User {
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(crypto.address)
@@ -84,6 +140,34 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
         });
       });
   };
+
+  // Notify when address is copied if security alerts are enabled
+  useEffect(() => {
+    const notifyDepositAddressAccess = async () => {
+      if (!currentUser || !isCopied) return;
+      
+      try {
+        const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'notifications');
+        const docSnap = await getDoc(settingsRef);
+        
+        if (docSnap.exists()) {
+          const settings = docSnap.data();
+          
+          if (settings.securityAlerts) {
+            triggerNotifications(settings, {
+              type: 'security',
+              title: 'Security Notice',
+              message: `You copied your ${crypto.name} deposit address`
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error sending security notification:', error);
+      }
+    };
+
+    notifyDepositAddressAccess();
+  }, [isCopied, currentUser, crypto.name]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -141,13 +225,33 @@ const WithdrawModal = ({
   const [error, setError] = useState('');
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const [notificationSettings, setNotificationSettings] = useState<any>(null);
 
-  // Simulated exchange rate - in a real app this would come from an API
-  const exchangeRate = 1; // 1 crypto = 1 USD for simplicity
+  // Fetch notification settings when modal opens
+  useEffect(() => {
+    const fetchNotificationSettings = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'notifications');
+        const docSnap = await getDoc(settingsRef);
+        
+        if (docSnap.exists()) {
+          setNotificationSettings(docSnap.data());
+        }
+      } catch (error) {
+        console.error('Error fetching notification settings:', error);
+      }
+    };
+
+    fetchNotificationSettings();
+  }, [currentUser]);
+
+  // Simulated exchange rate
+  const exchangeRate = 1;
 
   const handleWithdraw = async () => {
     if (!currentUser) {
-      console.log("No current user logged in.");
       toast({
         variant: "destructive",
         description: "You must be logged in to transfer crypto",
@@ -202,7 +306,7 @@ const WithdrawModal = ({
       const recipientId = recipientDoc.id;
       const recipientData = recipientDoc.data();
       
-      // Find recipient's wallet for the same cryptocurrency
+      // Find recipient's wallet
       const walletsRef = collection(db, 'users', recipientId, 'wallets');
       const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
       const walletSnapshot = await getDocs(walletQuery);
@@ -264,6 +368,23 @@ const WithdrawModal = ({
       });
       
       await batch.commit();
+
+      // Trigger notifications after successful withdrawal
+      if (notificationSettings) {
+        // Transaction notification
+        triggerNotifications(notificationSettings, {
+          type: 'transaction',
+          title: 'Transaction Completed',
+          message: `Sent ${withdrawAmount.toFixed(6)} ${crypto.symbol} to ${recipientEmail}`
+        });
+
+        // Security alert
+        triggerNotifications(notificationSettings, {
+          type: 'security',
+          title: 'Security Alert',
+          message: `Withdrawal of ${withdrawAmount.toFixed(6)} ${crypto.symbol} initiated from your account`
+        });
+      }
 
       toast({
         title: 'Transfer successful!',
@@ -809,6 +930,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const { toast } = useToast();
   const [localCrypto, setLocalCrypto] = useState(crypto);
+  const { currentUser } = useAuth();
   
   // Update local state when prop changes
   useEffect(() => {
@@ -825,6 +947,42 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       balance: prev.balance - (isNaN(total) ? 0 : total),
     }));
   };
+  
+  // Setup price alerts
+  useEffect(() => {
+    const setupPriceAlerts = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'notifications');
+        const docSnap = await getDoc(settingsRef);
+        
+        if (docSnap.exists()) {
+          const settings = docSnap.data();
+          
+          if (settings.priceAlerts) {
+            // Simulated price alert system
+            const simulatePriceAlert = () => {
+              if (Math.random() > 0.5) {
+                triggerNotifications(settings, {
+                  type: 'price',
+                  title: 'Price Alert',
+                  message: `${localCrypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
+                });
+              }
+            };
+            
+            const interval = setInterval(simulatePriceAlert, 30000);
+            return () => clearInterval(interval);
+          }
+        }
+      } catch (error) {
+        console.error('Error setting up price alerts:', error);
+      }
+    };
+
+    setupPriceAlerts();
+  }, [currentUser, localCrypto.symbol]);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(localCrypto.address)
