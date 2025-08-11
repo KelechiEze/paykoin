@@ -41,7 +41,8 @@ const triggerNotifications = (
     type: 'transaction' | 'security' | 'price';
     title: string;
     message: string;
-  }
+  },
+  toast: any // Added toast as parameter
 ) => {
   const { type, title, message } = notificationData;
 
@@ -86,6 +87,7 @@ interface Cryptocurrency {
   isUp: boolean;
   transactions: Transaction[];
   cgId?: string;
+  imageUrl?: string; // Added for CoinGecko image URL
 }
 
 interface Transaction {
@@ -110,6 +112,7 @@ interface CGCoin {
   symbol: string;
   current_price: number;
   price_change_percentage_24h: number;
+  image: string; // Added for CoinGecko image URL
 }
 
 interface User {
@@ -158,7 +161,7 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
               type: 'security',
               title: 'Security Notice',
               message: `You copied your ${crypto.name} deposit address`
-            });
+            }, toast); // Added toast parameter
           }
         }
       } catch (error) {
@@ -167,7 +170,7 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
     };
 
     notifyDepositAddressAccess();
-  }, [isCopied, currentUser, crypto.name]);
+  }, [isCopied, currentUser, crypto.name, toast]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -299,6 +302,7 @@ const WithdrawModal = ({
       
       if (querySnapshot.empty) {
         setError('No user found with this email');
+        setIsWithdrawing(false); // Reset loading state
         return;
       }
       
@@ -313,6 +317,7 @@ const WithdrawModal = ({
       
       if (walletSnapshot.empty) {
         setError('Recipient does not have a wallet for this cryptocurrency');
+        setIsWithdrawing(false); // Reset loading state
         return;
       }
       
@@ -376,14 +381,14 @@ const WithdrawModal = ({
           type: 'transaction',
           title: 'Transaction Completed',
           message: `Sent ${withdrawAmount.toFixed(6)} ${crypto.symbol} to ${recipientEmail}`
-        });
+        }, toast); // Added toast parameter
 
         // Security alert
         triggerNotifications(notificationSettings, {
           type: 'security',
           title: 'Security Alert',
           message: `Withdrawal of ${withdrawAmount.toFixed(6)} ${crypto.symbol} initiated from your account`
-        });
+        }, toast); // Added toast parameter
       }
 
       toast({
@@ -591,7 +596,8 @@ const AddCryptoModal = ({
       change: crypto.price_change_percentage_24h || 0,
       isUp: (crypto.price_change_percentage_24h || 0) >= 0,
       transactions: [],
-      cgId: crypto.id
+      cgId: crypto.id,
+      imageUrl: crypto.image // Store CoinGecko image URL
     };
     
     onAdd(newCrypto);
@@ -644,9 +650,16 @@ const AddCryptoModal = ({
                     className={`p-3 rounded-lg border flex justify-between items-center ${alreadyAdded ? 'bg-gray-100' : 'hover:bg-gray-50 cursor-pointer'}`}
                     onClick={() => !alreadyAdded && handleAddCrypto(crypto)}
                   >
-                    <div>
-                      <p className="font-medium">{crypto.name}</p>
-                      <p className="text-sm text-gray-500">{crypto.symbol}</p>
+                    <div className="flex items-center">
+                      <img 
+                        src={crypto.image} 
+                        alt={crypto.name} 
+                        className="w-8 h-8 mr-3"
+                      />
+                      <div>
+                        <p className="font-medium">{crypto.name}</p>
+                        <p className="text-sm text-gray-500">{crypto.symbol}</p>
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">${crypto.current_price.toFixed(2)}</p>
@@ -762,7 +775,8 @@ const Wallets: React.FC = () => {
                 change: priceChange,
                 isUp: priceChange >= 0,
                 transactions,
-                cgId: walletData.cgId
+                cgId: walletData.cgId,
+                imageUrl: walletData.imageUrl // Added for CoinGecko image
               };
             })
           );
@@ -806,6 +820,7 @@ const Wallets: React.FC = () => {
         change: newCrypto.change,
         isUp: newCrypto.isUp,
         cgId: newCrypto.cgId,
+        imageUrl: newCrypto.imageUrl, // Store CoinGecko image URL
         createdAt: serverTimestamp()
       });
 
@@ -904,15 +919,15 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
           className="w-10 h-10 rounded-full mr-3 flex items-center justify-center"
           style={{ backgroundColor: `${crypto.color}20` }}
         >
-          {imgError ? (
-            <span style={{ color: crypto.color }}>{crypto.symbol.charAt(0).toUpperCase()}</span>
-          ) : (
+          {crypto.imageUrl && !imgError ? (
             <img
-              src={`https://cryptologos.cc/logos/${crypto.name.toLowerCase()}-${crypto.symbol.toLowerCase()}-logo.png`}
+              src={crypto.imageUrl}
               alt={`${crypto.name} logo`}
               onError={() => setImgError(true)}
               className="w-6 h-6"
             />
+          ) : (
+            <span style={{ color: crypto.color }}>{crypto.symbol.slice(0, 4).toUpperCase()}</span>
           )}
         </div>
         <div className="text-left">
@@ -968,7 +983,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                   type: 'price',
                   title: 'Price Alert',
                   message: `${localCrypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
-                });
+                }, toast); // Added toast parameter
               }
             };
             
@@ -982,7 +997,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     };
 
     setupPriceAlerts();
-  }, [currentUser, localCrypto.symbol]);
+  }, [currentUser, localCrypto.symbol, toast]);
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(localCrypto.address)
@@ -1054,7 +1069,17 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
             className="w-12 h-12 rounded-full mr-4 flex items-center justify-center"
             style={{ backgroundColor: `${localCrypto.color}20` }}
           >
-            <span style={{ color: localCrypto.color }} className="text-lg font-bold">{localCrypto.symbol.charAt(0).toUpperCase()}</span>
+            {localCrypto.imageUrl ? (
+              <img 
+                src={localCrypto.imageUrl} 
+                alt={localCrypto.name} 
+                className="w-8 h-8"
+              />
+            ) : (
+              <span style={{ color: localCrypto.color }} className="text-sm font-bold">
+                {localCrypto.symbol.slice(0, 4).toUpperCase()}
+              </span>
+            )}
           </div>
           <div>
             <h2 className="text-2xl font-bold">{localCrypto.name}</h2>
