@@ -863,7 +863,7 @@ const Wallets: React.FC = () => {
     <div className="space-y-8 animate-fade-in">
       {showAddModal && (
         <AddCryptoModal 
-          onClose={() => setShowAddModal(false)} 
+          onClose={() => setShowAddModal(false)}
           onAdd={handleAddCrypto}
           existingCryptos={cryptos}
         />
