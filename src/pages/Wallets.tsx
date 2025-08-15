@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Copy, Check, ExternalLink, DollarSign, ArrowDown } from 'lucide-react';
+import { 
+  ArrowLeft, Copy, Check, ExternalLink, DollarSign, ArrowDown, Clock, 
+  Hash, ArrowUpRight, ArrowDownLeft, Send 
+} from 'lucide-react';
+
+const getTransactionTypeIcon = (transaction) => {
+  switch (transaction.type) {
+    case 'deposit':
+    case 'received':
+      return <ArrowDownLeft className="text-green-500" size={24} />; // ✅ replaced Receive
+    case 'withdrawal':
+    case 'sent':
+      return <Send className="text-red-500" size={24} />;
+    default:
+      return <Hash className="text-gray-500" size={24} />;
+  }
+};
+
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -685,6 +702,168 @@ const AddCryptoModal = ({
   );
 };
 
+// Transaction Detail Modal Component
+const TransactionDetailModal = ({ 
+  transaction, 
+  crypto, 
+  onClose 
+}: { 
+  transaction: Transaction; 
+  crypto: Cryptocurrency; 
+  onClose: () => void 
+}) => {
+  const { toast } = useToast();
+  const [isCopied, setIsCopied] = useState(false);
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setIsCopied(true);
+        toast({
+          description: "Copied to clipboard",
+        });
+        setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+        toast({
+          variant: "destructive",
+          description: "Failed to copy",
+        });
+      });
+  };
+  
+  const getTransactionTypeLabel = () => {
+    switch (transaction.type) {
+      case 'deposit':
+        return 'Deposit';
+      case 'received':
+        return 'Received';
+      case 'withdrawal':
+        return 'Withdrawal';
+      case 'sent':
+        return 'Sent';
+      default:
+        return 'Transaction';
+    }
+  };
+  
+  const getDirectionLabel = () => {
+    if (transaction.type === 'deposit' || transaction.type === 'received') {
+      return 'From';
+    }
+    return 'To';
+  };
+  
+  const getDirectionValue = () => {
+    if (transaction.type === 'deposit' || transaction.type === 'received') {
+      return transaction.from || 'Unknown';
+    }
+    return transaction.to || 'Unknown';
+  };
+  
+  const getAmountColor = () => {
+    return transaction.type === 'deposit' || transaction.type === 'received' 
+      ? 'text-green-600' 
+      : 'text-red-500';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-scale-in">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-semibold">Transaction Details</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            &times;
+          </button>
+        </div>
+        
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            {getTransactionTypeIcon(transaction)}
+          </div>
+          <h4 className="text-lg font-semibold">{getTransactionTypeLabel()}</h4>
+          <p className={cn("text-2xl font-bold mt-2", getAmountColor())}>
+            {transaction.type === 'withdrawal' || transaction.type === 'sent' ? '-' : '+'}
+            {transaction.amount} {crypto.symbol.toUpperCase()}
+          </p>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex justify-between mb-3">
+              <span className="text-gray-500">Status</span>
+              <span className={cn(
+                "font-medium",
+                transaction.status === 'completed' ? 'text-green-600' : 'text-amber-600'
+              )}>
+                {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+              </span>
+            </div>
+            
+            <div className="flex justify-between mb-3">
+              <span className="text-gray-500">Date</span>
+              <span className="font-medium">
+                {transaction.date.toLocaleString()}
+              </span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-gray-500">Transaction ID</span>
+              <button 
+                onClick={() => copyToClipboard(transaction.id)}
+                className="text-gray-700 hover:text-crypto-blue flex items-center"
+              >
+                <span className="truncate max-w-[120px]">{transaction.id.slice(0, 8)}...</span>
+                <Copy className="ml-1" size={16} />
+              </button>
+            </div>
+          </div>
+          
+          <div className="bg-gray-50 rounded-xl p-4">
+            <div className="flex justify-between mb-3">
+              <span className="text-gray-500">{getDirectionLabel()}</span>
+              <span className="font-medium truncate max-w-[200px]">
+                {getDirectionValue()}
+              </span>
+            </div>
+            
+            <div className="flex justify-between mb-3">
+              <span className="text-gray-500">Network Fee</span>
+              <span className="font-medium">
+                {transaction.fee ? `${transaction.fee} ${crypto.symbol}` : 'Free'}
+              </span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-gray-500">Fiat Value</span>
+              <span className="font-medium">
+                {transaction.fiatAmount && transaction.fiatCurrency 
+                  ? `${transaction.fiatAmount} ${transaction.fiatCurrency}`
+                  : 'N/A'}
+              </span>
+            </div>
+          </div>
+          
+          {transaction.note && (
+            <div className="bg-gray-50 rounded-xl p-4">
+              <h4 className="text-gray-500 mb-2">Note</h4>
+              <p className="font-medium">{transaction.note}</p>
+            </div>
+          )}
+        </div>
+        
+        <button 
+          onClick={onClose}
+          className="w-full py-3 mt-6 bg-crypto-blue text-white rounded-xl hover:bg-crypto-blue/90 transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Wallets: React.FC = () => {
   const { currentUser, loading: authLoading } = useAuth();
   const [selectedCrypto, setSelectedCrypto] = useState<string | null>(null);
@@ -946,6 +1125,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const { toast } = useToast();
   const [localCrypto, setLocalCrypto] = useState(crypto);
   const { currentUser } = useAuth();
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
   // Update local state when prop changes
   useEffect(() => {
@@ -1055,6 +1235,14 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         />
       )}
       
+      {selectedTransaction && (
+        <TransactionDetailModal 
+          transaction={selectedTransaction} 
+          crypto={localCrypto} 
+          onClose={() => setSelectedTransaction(null)} 
+        />
+      )}
+      
       <button 
         onClick={onBack}
         className="mb-6 flex items-center text-gray-600 hover:text-gray-900 transition-colors"
@@ -1160,33 +1348,36 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
             {localCrypto.transactions
               .sort((a, b) => b.date.getTime() - a.date.getTime())
               .map((tx) => (
-                <div key={tx.id} className="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
-                  <div>
-                    <p className="text-sm font-medium capitalize">{tx.type}</p>
-                    <p className="text-xs text-gray-500">
-                      {tx.date.toLocaleString()}
-                      {tx.type === 'withdrawal' && tx.to && `To: ${tx.to}`}
-                      {tx.type === 'received' && tx.from && `From: ${tx.from}`}
-                    </p>
-                    {tx.fiatAmount && tx.fiatCurrency && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        ≈ {tx.fiatAmount} {tx.fiatCurrency}
+                <button
+                  key={tx.id}
+                  onClick={() => setSelectedTransaction(tx)}
+                  className="w-full flex justify-between items-center p-4 border rounded-xl bg-white hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+                      {tx.type === 'deposit' || tx.type === 'received' ? (
+                        <ArrowDownLeft className="text-green-500" size={20} />
+                      ) : (
+                        <ArrowUpRight className="text-red-500" size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium capitalize">{tx.type}</p>
+                      <p className="text-sm text-gray-500">
+                        {tx.date.toLocaleDateString()}
                       </p>
-                    )}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-semibold ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-red-500'}`}>
+                    <p className={`font-semibold ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-red-500'}`}>
                       {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
                       {tx.amount} {localCrypto.symbol.toUpperCase()}
                     </p>
-                    {tx.fee && (
-                      <p className="text-xs text-gray-500">Fee: {tx.fee} {localCrypto.symbol.toUpperCase()}</p>
-                    )}
                     <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
                       {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
           </div>
         ) : (
