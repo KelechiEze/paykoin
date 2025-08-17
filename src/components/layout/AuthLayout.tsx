@@ -12,7 +12,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
     <div className="min-h-screen flex items-center justify-center bg-crypto-light p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link to="/" className="inline-block">
+          <Link to="https://paycoin.netlify.app/" className="inline-block">
             <div className="flex justify-center mb-6">
               <div className="w-12 h-12 rounded-full bg-crypto-blue text-white flex items-center justify-center text-xl font-bold">
                 P
