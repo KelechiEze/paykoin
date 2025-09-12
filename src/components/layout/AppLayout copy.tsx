@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Wallet, User, Settings, ChevronRight } from 'lucide-react';
+import { Menu, X, Home, Wallet, User, Settings, ChevronRight, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -41,6 +41,10 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Settings',
     'Need help?': 'Need help?',
     'Contact Support': 'Contact Support',
+    'Contact Support Title': 'Contact Customer Care',
+    'Contact Support Message': 'Do you wish to contact our customer care support team?',
+    'Yes': 'Yes',
+    'No': 'No',
   },
   spanish: {
     Dashboard: 'Panel de Control',
@@ -49,6 +53,10 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Configuración',
     'Need help?': '¿Necesitas ayuda?',
     'Contact Support': 'Contactar Soporte',
+    'Contact Support Title': 'Contactar Atención al Cliente',
+    'Contact Support Message': '¿Deseas contactar a nuestro equipo de soporte de atención al cliente?',
+    'Yes': 'Sí',
+    'No': 'No',
   },
   french: {
     Dashboard: 'Tableau de Bord',
@@ -57,6 +65,10 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Paramètres',
     'Need help?': 'Besoin d\'aide?',
     'Contact Support': 'Contacter le Support',
+    'Contact Support Title': 'Contacter le Service Client',
+    'Contact Support Message': 'Souhaitez-vous contacter notre équipe de support client?',
+    'Yes': 'Oui',
+    'No': 'Non',
   },
   german: {
     Dashboard: 'Übersicht',
@@ -65,6 +77,10 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Einstellungen',
     'Need help?': 'Brauchst du Hilfe?',
     'Contact Support': 'Support kontaktieren',
+    'Contact Support Title': 'Kundendienst kontaktieren',
+    'Contact Support Message': 'Möchten Sie unser Kundensupport-Team kontaktieren?',
+    'Yes': 'Ja',
+    'No': 'Nein',
   },
   japanese: {
     Dashboard: 'ダッシュボード',
@@ -73,11 +89,16 @@ const translations: Record<string, Record<string, string>> = {
     Settings: '設定',
     'Need help?': 'お手伝いが必要ですか？',
     'Contact Support': 'サポートに連絡する',
+    'Contact Support Title': 'カスタマーケアにお問い合わせ',
+    'Contact Support Message': 'カスタマーケアサポートチームに連絡しますか？',
+    'Yes': 'はい',
+    'No': 'いいえ',
   },
 };
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isContactModalOpen, setContactModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
   const { darkMode, language } = useSettings();
@@ -102,13 +123,22 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     return translations[language]?.[key] || key;
   };
 
+  const handleContactSupport = () => {
+    window.location.href = 'mailto:paycoincustomercare@gmail.com';
+    setContactModalOpen(false);
+  };
+
   return (
     <SidebarContext.Provider value={{ isOpen, toggle, close }}>
       <div className={cn(
         "flex min-h-screen transition-colors duration-200",
         darkMode ? "bg-gray-900 text-white" : "bg-crypto-light"
       )}>
-        <Sidebar isOpen={isOpen} translate={translate} />
+        <Sidebar 
+          isOpen={isOpen} 
+          translate={translate} 
+          onContactSupport={() => setContactModalOpen(true)} 
+        />
         <main className={cn(
           "flex-1 transition-all duration-300 ease-in-out overflow-x-hidden",
           isOpen && !isMobile ? "ml-64" : "ml-0",
@@ -118,12 +148,27 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {children}
           </div>
         </main>
+        
+        {/* Contact Support Modal */}
+        {isContactModalOpen && (
+          <ContactSupportModal 
+            isOpen={isContactModalOpen}
+            onClose={() => setContactModalOpen(false)}
+            onConfirm={handleContactSupport}
+            darkMode={darkMode}
+            translate={translate}
+          />
+        )}
       </div>
     </SidebarContext.Provider>
   );
 };
 
-const Sidebar: React.FC<{ isOpen: boolean, translate: (key: string) => string }> = ({ isOpen, translate }) => {
+const Sidebar: React.FC<{ 
+  isOpen: boolean, 
+  translate: (key: string) => string,
+  onContactSupport: () => void
+}> = ({ isOpen, translate, onContactSupport }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -213,7 +258,11 @@ const Sidebar: React.FC<{ isOpen: boolean, translate: (key: string) => string }>
               "text-sm",
               darkMode ? "text-gray-300" : "text-gray-600"
             )}>{translate('Need help?')}</p>
-            <button className="mt-2 text-sm font-medium text-crypto-blue hover:underline">
+            <button 
+              onClick={onContactSupport}
+              className="mt-2 text-sm font-medium text-crypto-blue hover:underline flex items-center"
+            >
+              <Mail size={16} className="mr-1" />
               {translate('Contact Support')}
             </button>
           </div>
@@ -230,7 +279,6 @@ const TopNav: React.FC = () => {
   const navigate = useNavigate();
 
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
-
 
   return (
     <>
@@ -266,7 +314,7 @@ const TopNav: React.FC = () => {
       {isLogoutModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className={cn(
-            "p-6 rounded-lg shadow-lg w-96 text-center",
+            "p-6 rounded-lg shadow-lg w-96 max-w-[90vw] text-center",
             darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
           )}>
             <h2 className="text-xl font-semibold">Are you sure you want to logout?</h2>
@@ -292,5 +340,57 @@ const TopNav: React.FC = () => {
         </div>
       )}
     </>
+  );
+};
+
+// Contact Support Modal Component
+const ContactSupportModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  darkMode: boolean;
+  translate: (key: string) => string;
+}> = ({ isOpen, onClose, onConfirm, darkMode, translate }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose} // clicking backdrop closes
+    >
+      <div 
+        className={cn(
+          "p-6 rounded-lg shadow-lg w-full max-w-md",
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        )}
+        onClick={(e) => e.stopPropagation()} // prevent close when clicking inside modal
+      >
+        <div className="flex flex-col items-center mb-4">
+          <Mail size={48} className="text-crypto-blue mb-3" />
+          <h2 className="text-xl font-semibold text-center">
+            {translate('Contact Support Title')}
+          </h2>
+        </div>
+        
+        <p className="text-center mb-6">
+          {translate('Contact Support Message')}
+        </p>
+        
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <button
+            onClick={onConfirm}
+            className="px-5 py-2.5 bg-crypto-blue text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            {translate('Yes')}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            {translate('No')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

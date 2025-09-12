@@ -1,6 +1,6 @@
-import React, { useState, createContext, useContext, useEffect, useRef } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Wallet, User, Settings, ChevronRight } from 'lucide-react';
+import { Menu, X, Home, Wallet, User, Settings, ChevronRight, Mail, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -41,6 +41,13 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Settings',
     'Need help?': 'Need help?',
     'Contact Support': 'Contact Support',
+    'Contact Support Title': 'Contact Customer Care',
+    'Contact Support Message': 'Do you wish to contact our customer care support team?',
+    'Yes': 'Yes',
+    'No': 'No',
+    'Open in Gmail': 'Open in Gmail',
+    'Open in Email Client': 'Open in Email Client',
+    'Choose an option': 'Choose an option',
   },
   spanish: {
     Dashboard: 'Panel de Control',
@@ -49,6 +56,13 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Configuración',
     'Need help?': '¿Necesitas ayuda?',
     'Contact Support': 'Contactar Soporte',
+    'Contact Support Title': 'Contactar Atención al Cliente',
+    'Contact Support Message': '¿Deseas contactar a nuestro equipo de soporte de atención al cliente?',
+    'Yes': 'Sí',
+    'No': 'No',
+    'Open in Gmail': 'Abrir en Gmail',
+    'Open in Email Client': 'Abrir en cliente de correo',
+    'Choose an option': 'Elige una opción',
   },
   french: {
     Dashboard: 'Tableau de Bord',
@@ -57,6 +71,13 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Paramètres',
     'Need help?': 'Besoin d\'aide?',
     'Contact Support': 'Contacter le Support',
+    'Contact Support Title': 'Contacter le Service Client',
+    'Contact Support Message': 'Souhaitez-vous contacter notre équipe de support client?',
+    'Yes': 'Oui',
+    'No': 'Non',
+    'Open in Gmail': 'Ouvrir dans Gmail',
+    'Open in Email Client': 'Ouvrir dans le client de messagerie',
+    'Choose an option': 'Choisissez une option',
   },
   german: {
     Dashboard: 'Übersicht',
@@ -65,6 +86,13 @@ const translations: Record<string, Record<string, string>> = {
     Settings: 'Einstellungen',
     'Need help?': 'Brauchst du Hilfe?',
     'Contact Support': 'Support kontaktieren',
+    'Contact Support Title': 'Kundendienst kontaktieren',
+    'Contact Support Message': 'Möchten Sie unser Kundensupport-Team kontaktieren?',
+    'Yes': 'Ja',
+    'No': 'Nein',
+    'Open in Gmail': 'In Gmail öffnen',
+    'Open in Email Client': 'Im E-Mail-Client öffnen',
+    'Choose an option': 'Wählen Sie eine Option',
   },
   japanese: {
     Dashboard: 'ダッシュボード',
@@ -73,11 +101,19 @@ const translations: Record<string, Record<string, string>> = {
     Settings: '設定',
     'Need help?': 'お手伝いが必要ですか？',
     'Contact Support': 'サポートに連絡する',
+    'Contact Support Title': 'カスタマーケアにお問い合わせ',
+    'Contact Support Message': 'カスタマーケアサポートチームに連絡しますか？',
+    'Yes': 'はい',
+    'No': 'いいえ',
+    'Open in Gmail': 'Gmailで開く',
+    'Open in Email Client': 'メールクライアントで開く',
+    'Choose an option': 'オプションを選択',
   },
 };
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isContactModalOpen, setContactModalOpen] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
   const { darkMode, language } = useSettings();
@@ -102,13 +138,30 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     return translations[language]?.[key] || key;
   };
 
+  const handleContactSupport = (useGmail: boolean) => {
+    if (useGmail) {
+      // Open Gmail in a new tab with pre-filled email
+      const subject = encodeURIComponent("Support Request");
+      const body = encodeURIComponent("Hello PayCoin Support Team,\n\nI need assistance with:");
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=paycoincustomercare@gmail.com&su=${subject}&body=${body}`, '_blank');
+    } else {
+      // Use standard mailto link
+      window.location.href = 'mailto:paycoincustomercare@gmail.com';
+    }
+    setContactModalOpen(false);
+  };
+
   return (
     <SidebarContext.Provider value={{ isOpen, toggle, close }}>
       <div className={cn(
         "flex min-h-screen transition-colors duration-200",
         darkMode ? "bg-gray-900 text-white" : "bg-crypto-light"
       )}>
-        <Sidebar isOpen={isOpen} translate={translate} />
+        <Sidebar 
+          isOpen={isOpen} 
+          translate={translate} 
+          onContactSupport={() => setContactModalOpen(true)} 
+        />
         <main className={cn(
           "flex-1 transition-all duration-300 ease-in-out overflow-x-hidden",
           isOpen && !isMobile ? "ml-64" : "ml-0",
@@ -118,12 +171,27 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             {children}
           </div>
         </main>
+        
+        {/* Contact Support Modal */}
+        {isContactModalOpen && (
+          <ContactSupportModal 
+            isOpen={isContactModalOpen}
+            onClose={() => setContactModalOpen(false)}
+            onConfirm={handleContactSupport}
+            darkMode={darkMode}
+            translate={translate}
+          />
+        )}
       </div>
     </SidebarContext.Provider>
   );
 };
 
-const Sidebar: React.FC<{ isOpen: boolean, translate: (key: string) => string }> = ({ isOpen, translate }) => {
+const Sidebar: React.FC<{ 
+  isOpen: boolean, 
+  translate: (key: string) => string,
+  onContactSupport: () => void
+}> = ({ isOpen, translate, onContactSupport }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -213,7 +281,11 @@ const Sidebar: React.FC<{ isOpen: boolean, translate: (key: string) => string }>
               "text-sm",
               darkMode ? "text-gray-300" : "text-gray-600"
             )}>{translate('Need help?')}</p>
-            <button className="mt-2 text-sm font-medium text-crypto-blue hover:underline">
+            <button 
+              onClick={onContactSupport}
+              className="mt-2 text-sm font-medium text-crypto-blue hover:underline flex items-center"
+            >
+              <Mail size={16} className="mr-1" />
               {translate('Contact Support')}
             </button>
           </div>
@@ -235,8 +307,8 @@ const TopNav: React.FC = () => {
     <>
       {/* Top Navbar */}
       <header className={cn(
-        "h-16 flex items-center px-4 sticky top-0 z-30",
-        darkMode ? "bg-gray-800 border-b border-gray-700" : "bg-white border-b"
+        "h-16 flex items-center px-4",
+        darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-b"
       )}>
         {!isOpen && (
           <button onClick={toggle} className={cn(
@@ -247,157 +319,8 @@ const TopNav: React.FC = () => {
           </button>
         )}
 
-        {/* Notification and Message Icons - COMMENTED OUT */}
-        {/* <div className="ml-auto flex items-center space-x-4">
-          {/* Notification Icon - COMMENTED OUT * /}
-          {/* <div className="relative">
-            <button 
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowMessages(false);
-              }}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-colors relative",
-                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-              )}
-            >
-              <Bell size={20} />
-              {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadNotificationsCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notifications Dropdown - COMMENTED OUT * /}
-            {showNotifications && (
-              <div className={cn(
-                "absolute right-0 mt-2 w-80 rounded-md shadow-lg z-50",
-                darkMode ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"
-              )}>
-                <div className={cn(
-                  "p-3 border-b",
-                  darkMode ? "border-gray-700" : "border-gray-200"
-                )}>
-                  <h3 className="font-semibold">Notifications</h3>
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <p className="p-3 text-center text-gray-500">No notifications</p>
-                  ) : (
-                    notifications.map(notification => (
-                      <div
-                        key={notification.id}
-                        className={cn(
-                          "p-3 border-b cursor-pointer transition-colors",
-                          darkMode 
-                            ? "border-gray-700 hover:bg-gray-700" 
-                            : "border-gray-200 hover:bg-gray-50",
-                          !notification.read && "bg-blue-50"
-                        )}
-                        onClick={() => markNotificationAsRead(notification.id)}
-                      >
-                        <p className={cn(!notification.read && "font-medium")}>
-                          {notification.message}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div> */}
-
-          {/* Message Icon - COMMENTED OUT * /}
-          {/* <div className="relative">
-            <button 
-              onClick={() => {
-                setShowMessages(!showMessages);
-                setShowNotifications(false);
-              }}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-colors relative",
-                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-              )}
-            >
-              <MessageSquare size={20} />
-              {unreadMessagesCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </button>
-
-            {/* Messages Dropdown - COMMENTED OUT * /}
-            {showMessages && (
-              <div className={cn(
-                "absolute right-0 mt-2 w-80 rounded-md shadow-lg z-50",
-                darkMode ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"
-              )}>
-                <div className={cn(
-                  "p-3 border-b flex items-center",
-                  darkMode ? "border-gray-700" : "border-gray-200"
-                )}>
-                  <h3 className="font-semibold flex-grow">Messages</h3>
-                  <button className="p-1 rounded hover:bg-gray-200">
-                    <Search size={16} />
-                  </button>
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {conversations.length === 0 ? (
-                    <p className="p-3 text-center text-gray-500">No messages</p>
-                  ) : (
-                    conversations.map(conversation => (
-                      <div
-                        key={conversation.id}
-                        className={cn(
-                          "p-3 border-b cursor-pointer transition-colors",
-                          darkMode 
-                            ? "border-gray-700 hover:bg-gray-700" 
-                            : "border-gray-200 hover:bg-gray-50",
-                          conversation.unread && "bg-blue-50"
-                        )}
-                        onClick={() => handleConversationSelect(conversation)}
-                      >
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-crypto-blue flex items-center justify-center text-white mr-3">
-                            {conversation.participant.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between">
-                              <p className={cn("font-semibold truncate", conversation.unread && "text-blue-600")}>
-                                {conversation.participant}
-                              </p>
-                              <span className="text-xs text-gray-500">
-                                {conversation.messages[conversation.messages.length - 1].timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <p className={cn("truncate text-sm", conversation.unread ? "font-medium" : "text-gray-500")}>
-                              {conversation.messages[conversation.messages.length - 1].text}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className={cn(
-                  "p-3 border-t",
-                  darkMode ? "border-gray-700" : "border-gray-200"
-                )}>
-                  <button 
-                    className="text-crypto-blue hover:underline"
-                    onClick={() => navigate('/messages')}
-                  >
-                    View all messages
-                  </button>
-                </div>
-              </div>
-            )}
-          </div> */}
-
         {/* User Profile Icon */}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center space-x-4">
           <button 
             onClick={() => setLogoutModalOpen(true)}
             className={cn(
@@ -414,7 +337,7 @@ const TopNav: React.FC = () => {
       {isLogoutModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className={cn(
-            "p-6 rounded-lg shadow-lg w-96 text-center",
+            "p-6 rounded-lg shadow-lg w-96 max-w-[90vw] text-center",
             darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
           )}>
             <h2 className="text-xl font-semibold">Are you sure you want to logout?</h2>
@@ -440,5 +363,71 @@ const TopNav: React.FC = () => {
         </div>
       )}
     </>
+  );
+};
+
+// Contact Support Modal Component
+const ContactSupportModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (useGmail: boolean) => void;
+  darkMode: boolean;
+  translate: (key: string) => string;
+}> = ({ isOpen, onClose, onConfirm, darkMode, translate }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose} // clicking backdrop closes
+    >
+      <div 
+        className={cn(
+          "p-6 rounded-lg shadow-lg w-full max-w-md",
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        )}
+        onClick={(e) => e.stopPropagation()} // prevent close when clicking inside modal
+      >
+        <div className="flex flex-col items-center mb-4">
+          <Mail size={48} className="text-crypto-blue mb-3" />
+          <h2 className="text-xl font-semibold text-center">
+            {translate('Contact Support Title')}
+          </h2>
+        </div>
+        
+        <p className="text-center mb-6">
+          {translate('Contact Support Message')}
+        </p>
+        
+        <p className="text-center mb-4 font-medium">
+          {translate('Choose an option')}
+        </p>
+        
+        <div className="flex flex-col gap-3 mb-4">
+          <button
+            onClick={() => onConfirm(true)}
+            className="flex items-center justify-center px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <ExternalLink size={18} className="mr-2" />
+            {translate('Open in Gmail')}
+          </button>
+          <button
+            onClick={() => onConfirm(false)}
+            className="px-5 py-3 bg-crypto-blue text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            {translate('Open in Email Client')}
+          </button>
+        </div>
+        
+        <div className="flex justify-center">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            {translate('No')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

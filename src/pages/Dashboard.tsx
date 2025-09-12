@@ -68,6 +68,7 @@ const Dashboard: React.FC = () => {
     activeWallets: 0,
     topPerformer: ''
   });
+  const [welcomeMessage, setWelcomeMessage] = useState('');
   // Commenting out messaging states for now
   /*
   const [messages, setMessages] = useState<Message[]>([]);
@@ -81,6 +82,26 @@ const Dashboard: React.FC = () => {
   */
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
+
+  // Array of welcome messages
+  const welcomeMessages = [
+    "Welcome back! Your financial progress is our success.",
+    "Great to see you! Let's grow your profits together.",
+    "Hello again! Your portfolio's progress brings us happiness.",
+    "Welcome! We're excited to cooperate on your financial journey.",
+    "Good to have you here! Your success is our foremost address.",
+    "Hello! Let's continue building wealth and prosperity.",
+    "Welcome back! Your financial growth is our shared quest.",
+    "Great to see you! Together we'll achieve financial greatness.",
+    "Hello again! Your profits and progress truly impress.",
+    "Welcome! Let's make your financial dreams manifest."
+  ];
+
+  // Set a random welcome message on component mount
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
+    setWelcomeMessage(welcomeMessages[randomIndex]);
+  }, []);
 
   // Fetch dashboard data from Firestore
   useEffect(() => {
@@ -369,7 +390,7 @@ const Dashboard: React.FC = () => {
             ? formatName(user.email.split('@')[0])
             : 'User'}
         </h2>
-        <p className="text-sm mt-1">We're glad to have you here. Let's check your crypto performance today.</p>
+        <p className="text-sm mt-1">{welcomeMessage}</p>
       </motion.div>
 
       {/* Balance Card */}
