@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Mail, Lock, User, Eye, EyeOff, CheckCircle, 
-  Loader2, Check, Bot, Server, Sparkles, Shield,
-  Cpu, Zap, Coins, Wallet
+  Loader2, Check, Server, Sparkles, Shield,
+  Cpu, Zap, Coins
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -194,24 +194,6 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const generateWalletAddress = (symbol: string): string => {
-    const prefixes: Record<string, string> = {
-      BTC: '1',
-      ETH: '0x',
-      SOL: '',
-      ADA: 'addr1'
-    };
-    
-    const chars = '0123456789ABCDEF';
-    let address = prefixes[symbol] || '';
-    
-    for (let i = 0; i < 34 - address.length; i++) {
-      address += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
-    return address;
-  };
-
   const getPasswordStrength = (
     password: string
   ): { strength: number; label: string; color: string } => {
@@ -240,9 +222,8 @@ const Signup = () => {
     setModalStep(0);
     setProgress(0);
     
-    // Step 1: Show creating wallets with progress bar for 40 seconds
-    const totalTime = 50000; // 50 seconds
-    const intervalTime = 100; // Update every 100ms for smooth animation
+    const totalTime = 5000; // shorter animation now
+    const intervalTime = 100;
     const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
     
@@ -255,7 +236,6 @@ const Signup = () => {
         clearInterval(progressInterval);
         setModalStep(1);
         
-        // Step 2: Show success for 2 seconds
         setTimeout(() => {
           setModalStep(2);
         }, 2000);
@@ -267,9 +247,8 @@ const Signup = () => {
     setModalStep(3);
     setProgress(0);
     
-    // Step 3: Show AI connection with progress bar for 10 seconds
-    const totalTime = 10000; // 10 seconds
-    const intervalTime = 100; // Update every 100ms for smooth animation
+    const totalTime = 4000;
+    const intervalTime = 100;
     const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
     
@@ -282,21 +261,18 @@ const Signup = () => {
         clearInterval(progressInterval);
         setModalStep(4);
         
-        // Step 4: Show AI connection success for 3 seconds then navigate
         setTimeout(() => {
           setShowWalletModal(false);
           navigate('/dashboard');
-        }, 3000);
+        }, 2000);
       }
     }, intervalTime);
   };
 
   const handleModalComplete = () => {
     if (modalStep === 2) {
-      // User wants to connect AI - start the connection process
       handleAIConnectionProcess();
     } else {
-      // User skipped AI connection - navigate directly to dashboard
       setShowWalletModal(false);
       navigate('/dashboard');
     }
@@ -334,10 +310,10 @@ const Signup = () => {
         fullName: name,
         email: email,
         createdAt: serverTimestamp(),
-        hasSeenWalletCreation: false, // Flag to track if user has seen the modal
+        hasSeenWalletCreation: false,
       });
 
-      // Initialize dashboard
+      // Initialize dashboard (empty, no default wallets)
       await setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), {
         totalBalance: 0,
         portfolioGrowth: 0,
@@ -345,78 +321,13 @@ const Signup = () => {
         topPerformer: null,
       });
 
-      // Initialize wallets with BTC and ETH
-      const walletsRef = collection(db, 'users', user.uid, 'wallets');
-      
-      const defaultWallets = [
-        {
-          id: 'BTC',
-          name: 'Bitcoin',
-          symbol: 'BTC',
-          color: '#F7931A',
-          cgId: 'bitcoin'
-        },
-        {
-          id: 'ETH',
-          name: 'Ethereum',
-          symbol: 'ETH',
-          color: '#627EEA',
-          cgId: 'ethereum'
-        },
-        {
-          id: 'SOL',
-          name: 'Solana',
-          symbol: 'SOL',
-          color: '#9945FF',
-          cgId: 'solana'
-        },
-        {
-          id: 'USDT',
-          name: 'Tether',
-          symbol: 'USDT',
-          color: '#26A17B',
-          cgId: 'tether'
-        },
-        {
-          id: 'DOGE',
-          name: 'Dogecoin',
-          symbol: 'DOGE',
-          color: '#C2A633',
-          cgId: 'dogecoin'
-        }
-      ];
-
-      await Promise.all(
-        defaultWallets.map(async (wallet) => {
-          const walletRef = doc(walletsRef, wallet.id);
-          await setDoc(walletRef, {
-            name: wallet.name,
-            symbol: wallet.symbol,
-            cryptoBalance: 0,
-            dollarBalance: 0,
-            walletAddress: generateWalletAddress(wallet.symbol),
-            color: wallet.color,
-            change: 0,
-            isUp: true,
-            createdAt: serverTimestamp(),
-            cgId: wallet.cgId
-          });
-          await setDoc(doc(walletRef, 'transactions', 'initial'), {});
-        })
-      );
-
-      // Update flag to indicate user has seen the wallet creation modal
-      await setDoc(doc(db, 'users', user.uid), {
-        hasSeenWalletCreation: true,
-      }, { merge: true });
+      // Show wallet creation modal
+      handleWalletCreationProcess();
 
       toast({
         title: 'Account Created',
-        description: 'Your account has been successfully created with default wallets!',
+        description: 'Your account has been successfully created!',
       });
-
-      // Show wallet creation modal instead of navigating directly
-      handleWalletCreationProcess();
 
     } catch (error: any) {
       let errorMessage = 'An error occurred during signup';
