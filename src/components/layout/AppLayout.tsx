@@ -224,10 +224,16 @@ const Sidebar: React.FC<{
           "flex items-center justify-between p-4",
           darkMode ? "border-gray-700" : "border-b"
         )}>
-          <div className="flex items-center space-x-2">
+          {/* Logo and PayCoin text wrapped in external link */}
+          <a 
+            href="https://paycoin.netlify.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center space-x-2"
+          >
             <div className="w-8 h-8 rounded-full bg-crypto-blue text-white flex items-center justify-center">P</div>
             <span className="font-semibold text-xl">PayCoin</span>
-          </div>
+          </a>
           {isMobile && (
             <button onClick={toggle} className={cn(
               "p-2 rounded-full transition-colors",
