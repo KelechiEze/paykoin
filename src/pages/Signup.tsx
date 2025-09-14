@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface PasswordRequirementProps {
   text: string;
@@ -112,7 +112,7 @@ const WalletCreationModal: React.FC<WalletCreationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {currentStep === 0 && (
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
               <div className="flex items-start">
@@ -123,7 +123,7 @@ const WalletCreationModal: React.FC<WalletCreationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {currentStep === 2 && (
             <div className="space-y-4 mb-4">
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg p-4">
@@ -146,7 +146,6 @@ const WalletCreationModal: React.FC<WalletCreationModalProps> = ({
                   </li>
                 </ul>
               </div>
-              
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <Button 
                   variant="outline" 
@@ -165,7 +164,7 @@ const WalletCreationModal: React.FC<WalletCreationModalProps> = ({
               </div>
             </div>
           )}
-          
+
           {currentStep === 3 && (
             <div className="bg-purple-50 border border-purple-100 rounded-lg p-4 mb-6">
               <div className="flex items-start">
@@ -221,21 +220,21 @@ const Signup = () => {
     setShowWalletModal(true);
     setModalStep(0);
     setProgress(0);
-    
-    const totalTime = 5000; // shorter animation now
+
+    const totalTime = 5000;
     const intervalTime = 100;
     const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
-    
+
     let currentProgress = 0;
     const progressInterval = setInterval(() => {
       currentProgress += progressIncrement;
       setProgress(Math.min(100, Math.round(currentProgress)));
-      
+
       if (currentProgress >= 100) {
         clearInterval(progressInterval);
         setModalStep(1);
-        
+
         setTimeout(() => {
           setModalStep(2);
         }, 2000);
@@ -246,21 +245,21 @@ const Signup = () => {
   const handleAIConnectionProcess = () => {
     setModalStep(3);
     setProgress(0);
-    
+
     const totalTime = 4000;
     const intervalTime = 100;
     const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
-    
+
     let currentProgress = 0;
     const progressInterval = setInterval(() => {
       currentProgress += progressIncrement;
       setProgress(Math.min(100, Math.round(currentProgress)));
-      
+
       if (currentProgress >= 100) {
         clearInterval(progressInterval);
         setModalStep(4);
-        
+
         setTimeout(() => {
           setShowWalletModal(false);
           navigate('/dashboard');
@@ -305,7 +304,6 @@ const Signup = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Create user profile
       await setDoc(doc(db, 'users', user.uid), {
         fullName: name,
         email: email,
@@ -313,7 +311,6 @@ const Signup = () => {
         hasSeenWalletCreation: false,
       });
 
-      // Initialize dashboard (empty, no default wallets)
       await setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), {
         totalBalance: 0,
         portfolioGrowth: 0,
@@ -321,13 +318,16 @@ const Signup = () => {
         topPerformer: null,
       });
 
-      // Show wallet creation modal
-      handleWalletCreationProcess();
+      await setDoc(doc(db, 'users', user.uid), {
+        hasSeenWalletCreation: true,
+      }, { merge: true });
 
       toast({
         title: 'Account Created',
-        description: 'Your account has been successfully created!',
+        description: 'Your account has been successfully created! You can now add a wallet.',
       });
+
+      handleWalletCreationProcess();
 
     } catch (error: any) {
       let errorMessage = 'An error occurred during signup';
@@ -415,60 +415,55 @@ const Signup = () => {
                     </button>
                   </div>
 
-                  <div className="mt-1 h-2 rounded-full w-full">
+                  {/* Password strength bar */}
+                  <div className="mt-2 h-2 rounded-full w-full bg-gray-200">
                     <div
-                      className={`h-full rounded-full ${passwordStrength.color}`}
-                      style={{ width: `${passwordStrength.strength * 25}%` }}
+                      className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.strength / 4) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs mt-1 text-gray-500">{passwordStrength.label} password</p>
+                  <p className="text-xs mt-1 text-gray-600">Strength: {passwordStrength.label}</p>
 
+                  {/* Password requirements */}
                   <ul className="mt-2 space-y-1">
-                    <PasswordRequirement
-                      text="At least 8 characters"
-                      satisfied={password.length >= 8}
-                    />
-                    <PasswordRequirement
-                      text="Includes uppercase letter"
-                      satisfied={/[A-Z]/.test(password)}
-                    />
-                    <PasswordRequirement
-                      text="Includes a number"
-                      satisfied={/[0-9]/.test(password)}
-                    />
-                    <PasswordRequirement
-                      text="Includes a special character"
-                      satisfied={/[^A-Za-z0-9]/.test(password)}
-                    />
+                    <PasswordRequirement text="At least 8 characters" satisfied={password.length >= 8} />
+                    <PasswordRequirement text="Contains uppercase letter" satisfied={/[A-Z]/.test(password)} />
+                    <PasswordRequirement text="Contains number" satisfied={/[0-9]/.test(password)} />
+                    <PasswordRequirement text="Contains special character" satisfied={/[^A-Za-z0-9]/.test(password)} />
                   </ul>
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading || passwordStrength.strength < 3}
-                  >
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
-                  </Button>
                 </div>
               </div>
             </CardContent>
-          </form>
 
-          <CardFooter className="flex justify-center border-t p-6">
-            <p className="text-sm text-gray-500">
-              Already have an account?{' '}
-              <Link to="/login" className="text-crypto-blue font-medium hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
+              </Button>
+
+              <p className="text-sm text-center text-gray-600">
+                Already have an account?{' '}
+                <Link to="/login" className="text-blue-600 hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
         </Card>
       </AuthLayout>
 
+      {/* Wallet creation modal */}
       <WalletCreationModal 
-        isOpen={showWalletModal} 
+        isOpen={showWalletModal}
         currentStep={modalStep}
         progress={progress}
         onComplete={handleModalComplete}

