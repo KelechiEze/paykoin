@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import CryptoChart from '@/components/layout/CryptoChart';
+// import CryptoChart from '@/components/layout/CryptoChart';
 import CryptoAssetsModal from '@/components/layout/CryptoAssetsModal';
 import { auth, db } from '@/firebase';
 import { 
@@ -528,15 +528,15 @@ const Dashboard: React.FC = () => {
         )}
       </motion.section>
 
-      {/* Crypto Chart */}
-      <motion.section 
+      {/* Crypto Chart - Commented Out */}
+      {/* <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         className="dashboard-card"
       >
         <CryptoChart />
-      </motion.section>
+      </motion.section> */}
 
       {/* Crypto Assets Modal */}
       <CryptoAssetsModal 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Search, TrendingUp, TrendingDown, ChevronDown } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, ChevronDown, RefreshCw } from 'lucide-react';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
 import './CryptoChart.css';
 
 interface CryptoData {
+  id: number;
   symbol: string;
   name: string;
   price: number;
@@ -24,57 +25,61 @@ interface ChartDataPoint {
   timestamp: number;
 }
 
+// CoinMarketCap API configuration
+const API_BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
+const API_KEY = process.env.REACT_APP_COINMARKETCAP_API_KEY; // You'll need to set this in your environment
+
 const CRYPTO_LIST = [
-  { symbol: 'BTC', name: 'Bitcoin', icon: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png' },
-  { symbol: 'ETH', name: 'Ethereum', icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' },
-  { symbol: 'BNB', name: 'BNB', icon: 'https://cryptologos.cc/logos/bnb-bnb-logo.png' },
-  { symbol: 'SOL', name: 'Solana', icon: 'https://cryptologos.cc/logos/solana-sol-logo.png' },
-  { symbol: 'XRP', name: 'XRP', icon: 'https://cryptologos.cc/logos/xrp-xrp-logo.png' },
-  { symbol: 'DOGE', name: 'Dogecoin', icon: 'https://cryptologos.cc/logos/dogecoin-doge-logo.png' },
-  { symbol: 'ADA', name: 'Cardano', icon: 'https://cryptologos.cc/logos/cardano-ada-logo.png' },
-  { symbol: 'AVAX', name: 'Avalanche', icon: 'https://cryptologos.cc/logos/avalanche-avax-logo.png' },
-  { symbol: 'TRX', name: 'TRON', icon: 'https://cryptologos.cc/logos/tron-trx-logo.png' },
-  { symbol: 'DOT', name: 'Polkadot', icon: 'https://cryptologos.cc/logos/polkadot-new-dot-logo.png' },
-  { symbol: 'MATIC', name: 'Polygon', icon: 'https://cryptologos.cc/logos/polygon-matic-logo.png' },
-  { symbol: 'LTC', name: 'Litecoin', icon: 'https://cryptologos.cc/logos/litecoin-ltc-logo.png' },
-  { symbol: 'SHIB', name: 'Shiba Inu', icon: 'https://cryptologos.cc/logos/shiba-inu-shib-logo.png' },
-  { symbol: 'UNI', name: 'Uniswap', icon: 'https://cryptologos.cc/logos/uniswap-uni-logo.png' },
-  { symbol: 'ATOM', name: 'Cosmos', icon: 'https://cryptologos.cc/logos/cosmos-atom-logo.png' },
-  { symbol: 'LINK', name: 'Chainlink', icon: 'https://cryptologos.cc/logos/chainlink-link-logo.png' },
-  { symbol: 'XLM', name: 'Stellar', icon: 'https://cryptologos.cc/logos/stellar-xlm-logo.png' },
-  { symbol: 'BCH', name: 'Bitcoin Cash', icon: 'https://cryptologos.cc/logos/bitcoin-cash-bch-logo.png' },
-  { symbol: 'NEAR', name: 'NEAR Protocol', icon: 'https://cryptologos.cc/logos/near-protocol-near-logo.png' },
-  { symbol: 'FTM', name: 'Fantom', icon: 'https://cryptologos.cc/logos/fantom-ftm-logo.png' },
-  { symbol: 'ALGO', name: 'Algorand', icon: 'https://cryptologos.cc/logos/algorand-algo-logo.png' },
-  { symbol: 'VET', name: 'VeChain', icon: 'https://cryptologos.cc/logos/vechain-vet-logo.png' },
-  { symbol: 'ICP', name: 'Internet Computer', icon: 'https://cryptologos.cc/logos/internet-computer-icp-logo.png' },
-  { symbol: 'FIL', name: 'Filecoin', icon: 'https://cryptologos.cc/logos/filecoin-fil-logo.png' },
-  { symbol: 'HBAR', name: 'Hedera', icon: 'https://cryptologos.cc/logos/hedera-hashgraph-hbar-logo.png' },
-  { symbol: 'APT', name: 'Aptos', icon: 'https://cryptologos.cc/logos/aptos-apt-logo.png' },
-  { symbol: 'MANA', name: 'Decentraland', icon: 'https://cryptologos.cc/logos/decentraland-mana-logo.png' },
-  { symbol: 'SAND', name: 'The Sandbox', icon: 'https://cryptologos.cc/logos/the-sandbox-sand-logo.png' },
-  { symbol: 'CRO', name: 'Cronos', icon: 'https://cryptologos.cc/logos/cronos-cro-logo.png' },
-  { symbol: 'LDO', name: 'Lido DAO', icon: 'https://cryptologos.cc/logos/lido-dao-ldo-logo.png' },
-  { symbol: 'ARB', name: 'Arbitrum', icon: 'https://cryptologos.cc/logos/arbitrum-arb-logo.png' },
-  { symbol: 'OP', name: 'Optimism', icon: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.png' },
-  { symbol: 'PEPE', name: 'Pepe', icon: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.jpeg' },
-  { symbol: 'RUNE', name: 'THORChain', icon: 'https://cryptologos.cc/logos/thorchain-rune-logo.png' },
-  { symbol: 'INJ', name: 'Injective', icon: 'https://cryptologos.cc/logos/injective-protocol-inj-logo.png' },
-  { symbol: 'SUI', name: 'Sui', icon: 'https://cryptologos.cc/logos/sui-sui-logo.png' },
-  { symbol: 'GRT', name: 'The Graph', icon: 'https://cryptologos.cc/logos/the-graph-grt-logo.png' },
-  { symbol: 'AAVE', name: 'Aave', icon: 'https://cryptologos.cc/logos/aave-aave-logo.png' },
-  { symbol: 'MKR', name: 'Maker', icon: 'https://cryptologos.cc/logos/maker-mkr-logo.png' },
-  { symbol: 'SNX', name: 'Synthetix', icon: 'https://cryptologos.cc/logos/synthetix-snx-logo.png' },
-  { symbol: 'COMP', name: 'Compound', icon: 'https://cryptologos.cc/logos/compound-comp-logo.png' },
-  { symbol: 'CRV', name: 'Curve DAO', icon: 'https://cryptologos.cc/logos/curve-dao-token-crv-logo.png' },
-  { symbol: 'SUSHI', name: 'SushiSwap', icon: 'https://cryptologos.cc/logos/sushiswap-sushi-logo.png' },
-  { symbol: 'YFI', name: 'yearn.finance', icon: 'https://cryptologos.cc/logos/yearn-finance-yfi-logo.png' },
-  { symbol: 'BAL', name: 'Balancer', icon: 'https://cryptologos.cc/logos/balancer-bal-logo.png' },
-  { symbol: 'REN', name: 'Ren', icon: 'https://cryptologos.cc/logos/ren-ren-logo.png' },
-  { symbol: 'ZRX', name: '0x', icon: 'https://cryptologos.cc/logos/0x-zrx-logo.png' },
-  { symbol: 'KNC', name: 'Kyber Network', icon: 'https://cryptologos.cc/logos/kyber-network-knc-logo.png' },
-  { symbol: 'BAND', name: 'Band Protocol', icon: 'https://cryptologos.cc/logos/band-protocol-band-logo.png' },
-  { symbol: 'ENJ', name: 'Enjin Coin', icon: 'https://cryptologos.cc/logos/enjin-coin-enj-logo.png' }
+  { id: 1, symbol: 'BTC', name: 'Bitcoin', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/btc.svg' },
+  { id: 1027, symbol: 'ETH', name: 'Ethereum', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/eth.svg' },
+  { id: 1839, symbol: 'BNB', name: 'BNB', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/bnb.svg' },
+  { id: 5426, symbol: 'SOL', name: 'Solana', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/sol.svg' },
+  { id: 52, symbol: 'XRP', name: 'XRP', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/xrp.svg' },
+  { id: 74, symbol: 'DOGE', name: 'Dogecoin', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/doge.svg' },
+  { id: 2010, symbol: 'ADA', name: 'Cardano', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/ada.svg' },
+  { id: 5805, symbol: 'AVAX', name: 'Avalanche', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/avax.svg' },
+  { id: 1958, symbol: 'TRX', name: 'TRON', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/trx.svg' },
+  { id: 6636, symbol: 'DOT', name: 'Polkadot', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/dot.svg' },
+  { id: 3890, symbol: 'MATIC', name: 'Polygon', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/matic.svg' },
+  { id: 2, symbol: 'LTC', name: 'Litecoin', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/ltc.svg' },
+  { id: 5994, symbol: 'SHIB', name: 'Shiba Inu', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/shib.svg' },
+  { id: 7083, symbol: 'UNI', name: 'Uniswap', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/uni.svg' },
+  { id: 3794, symbol: 'ATOM', name: 'Cosmos', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/atom.svg' },
+  { id: 1975, symbol: 'LINK', name: 'Chainlink', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/link.svg' },
+  { id: 512, symbol: 'XLM', name: 'Stellar', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/xlm.svg' },
+  { id: 1831, symbol: 'BCH', name: 'Bitcoin Cash', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/bch.svg' },
+  { id: 6535, symbol: 'NEAR', name: 'NEAR Protocol', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/near.svg' },
+  { id: 3513, symbol: 'FTM', name: 'Fantom', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/ftm.svg' },
+  { id: 4030, symbol: 'ALGO', name: 'Algorand', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/algo.svg' },
+  { id: 3077, symbol: 'VET', name: 'VeChain', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/vet.svg' },
+  { id: 8916, symbol: 'ICP', name: 'Internet Computer', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/icp.svg' },
+  { id: 2280, symbol: 'FIL', name: 'Filecoin', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/fil.svg' },
+  { id: 4642, symbol: 'HBAR', name: 'Hedera', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/hbar.svg' },
+  { id: 21794, symbol: 'APT', name: 'Aptos', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/apt.svg' },
+  { id: 1966, symbol: 'MANA', name: 'Decentraland', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/mana.svg' },
+  { id: 6210, symbol: 'SAND', name: 'The Sandbox', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/sand.svg' },
+  { id: 3635, symbol: 'CRO', name: 'Cronos', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/cro.svg' },
+  { id: 8000, symbol: 'LDO', name: 'Lido DAO', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/ldo.svg' },
+  { id: 11841, symbol: 'ARB', name: 'Arbitrum', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/arb.svg' },
+  { id: 11840, symbol: 'OP', name: 'Optimism', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/op.svg' },
+  { id: 24478, symbol: 'PEPE', name: 'Pepe', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/pepe.svg' },
+  { id: 4157, symbol: 'RUNE', name: 'THORChain', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/rune.svg' },
+  { id: 7226, symbol: 'INJ', name: 'Injective', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/inj.svg' },
+  { id: 20947, symbol: 'SUI', name: 'Sui', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/sui.svg' },
+  { id: 6719, symbol: 'GRT', name: 'The Graph', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/grt.svg' },
+  { id: 7278, symbol: 'AAVE', name: 'Aave', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/aave.svg' },
+  { id: 1518, symbol: 'MKR', name: 'Maker', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/mkr.svg' },
+  { id: 2586, symbol: 'SNX', name: 'Synthetix', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/snx.svg' },
+  { id: 5692, symbol: 'COMP', name: 'Compound', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/comp.svg' },
+  { id: 6538, symbol: 'CRV', name: 'Curve DAO', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/crv.svg' },
+  { id: 6758, symbol: 'SUSHI', name: 'SushiSwap', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/sushi.svg' },
+  { id: 5864, symbol: 'YFI', name: 'yearn.finance', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/yfi.svg' },
+  { id: 5728, symbol: 'BAL', name: 'Balancer', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/bal.svg' },
+  { id: 2539, symbol: 'REN', name: 'Ren', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/ren.svg' },
+  { id: 1896, symbol: 'ZRX', name: '0x', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/zrx.svg' },
+  { id: 9444, symbol: 'KNC', name: 'Kyber Network', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/knc.svg' },
+  { id: 4679, symbol: 'BAND', name: 'Band Protocol', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/band.svg' },
+  { id: 2130, symbol: 'ENJ', name: 'Enjin Coin', icon: 'https://cdn.jsdelivr.net/gh/atomiclabs/cryptocurrency-icons@1a63530be6e374711a8554f31b17e4cb92c25fa5/svg/color/enj.svg' }
 ];
 
 const TIME_RANGES = [
@@ -94,67 +99,135 @@ const CryptoChart: React.FC = () => {
   const [timeRange, setTimeRange] = useState('24h');
   const [loading, setLoading] = useState(false);
   const [searchNoResults, setSearchNoResults] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const generateMockData = useCallback((symbol: string, range: string) => {
-    const basePrice = Math.random() * 50000 + 1000;
+  // Fetch crypto data from CoinMarketCap
+  const fetchCryptoData = useCallback(async (symbol: string) => {
+    if (!API_KEY) {
+      console.error('CoinMarketCap API key is not set');
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Find the crypto ID
+      const crypto = CRYPTO_LIST.find(c => c.symbol === symbol);
+      if (!crypto) return;
+
+      // Fetch latest quotes
+      const quotesResponse = await fetch(
+        `${API_BASE_URL}/cryptocurrency/quotes/latest?id=${crypto.id}`,
+        {
+          headers: {
+            'X-CMC_PRO_API_KEY': API_KEY,
+          },
+        }
+      );
+
+      if (!quotesResponse.ok) {
+        throw new Error('Failed to fetch crypto data');
+      }
+
+      const quotesData = await quotesResponse.json();
+      const quote = quotesData.data[crypto.id].quote.USD;
+
+      const cryptoData: CryptoData = {
+        id: crypto.id,
+        symbol: crypto.symbol,
+        name: crypto.name,
+        price: quote.price,
+        change24h: quote.percent_change_24h,
+        volume24h: quote.volume_24h,
+        marketCap: quote.market_cap,
+      };
+
+      setCryptoData(cryptoData);
+      setLastUpdated(new Date().toLocaleTimeString());
+
+      // For chart data, we'll use a simplified approach since historical data requires a paid plan
+      // In a real implementation, you would fetch historical data based on the timeRange
+      generateChartData(cryptoData, timeRange);
+    } catch (error) {
+      console.error('Error fetching crypto data:', error);
+      // Fallback to mock data if API fails
+      generateMockCryptoData(symbol);
+    } finally {
+      setLoading(false);
+    }
+  }, [timeRange]);
+
+  // Generate chart data based on real price and time range
+  const generateChartData = useCallback((data: CryptoData, range: string) => {
+    // This is a simplified implementation
+    // In a real app, you would fetch historical data from an API
+    const basePrice = data.price;
+    const volatility = 0.02;
     const dataPoints = range === '1h' ? 60 : range === '24h' ? 24 : range === '7d' ? 168 : 30;
-    const data: ChartDataPoint[] = [];
+    const chartData: ChartDataPoint[] = [];
     
     for (let i = 0; i < dataPoints; i++) {
-      const volatility = 0.02;
       const change = (Math.random() - 0.5) * volatility;
-      const price = i === 0 ? basePrice : data[i - 1].price * (1 + change);
+      const price = i === 0 ? basePrice : chartData[i - 1].price * (1 + change);
       
-      data.push({
+      chartData.push({
         time: new Date(Date.now() - (dataPoints - i) * (range === '1h' ? 60000 : 3600000)).toLocaleTimeString(),
         price: Math.round(price * 100) / 100,
         timestamp: Date.now() - (dataPoints - i) * (range === '1h' ? 60000 : 3600000)
       });
     }
     
-    return data;
+    setChartData(chartData);
   }, []);
 
-  const generateMockCryptoData = useCallback((symbol: string): CryptoData => {
-    const price = Math.random() * 50000 + 100;
-    const change = (Math.random() - 0.5) * 20;
+  // Fallback to mock data if API is not available
+  const generateMockCryptoData = useCallback((symbol: string) => {
+    const crypto = CRYPTO_LIST.find(c => c.symbol === symbol);
+    if (!crypto) return;
+
+    // More realistic mock data based on typical crypto values
+    const mockPrice = symbol === 'BTC' ? 50000 + Math.random() * 10000 :
+                     symbol === 'ETH' ? 3000 + Math.random() * 1000 :
+                     Math.random() * 100;
     
-    return {
-      symbol,
-      name: CRYPTO_LIST.find(c => c.symbol === symbol)?.name || symbol,
-      price: Math.round(price * 100) / 100,
-      change24h: Math.round(change * 100) / 100,
-      volume24h: Math.round(Math.random() * 1000000000),
-      marketCap: Math.round(Math.random() * 100000000000)
+    const mockChange = (Math.random() - 0.5) * 10;
+    
+    const mockData: CryptoData = {
+      id: crypto.id,
+      symbol: crypto.symbol,
+      name: crypto.name,
+      price: Math.round(mockPrice * 100) / 100,
+      change24h: Math.round(mockChange * 100) / 100,
+      volume24h: Math.random() * 1000000000,
+      marketCap: Math.random() * 100000000000
     };
-  }, []);
-
-  const fetchCryptoData = useCallback(async (symbol: string) => {
-    setLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockData = generateMockCryptoData(symbol);
-    const mockChartData = generateMockData(symbol, timeRange);
     
     setCryptoData(mockData);
-    setChartData(mockChartData);
-    setLoading(false);
-  }, [generateMockCryptoData, generateMockData, timeRange]);
+    setLastUpdated(new Date().toLocaleTimeString());
+    generateChartData(mockData, timeRange);
+  }, [timeRange, generateChartData]);
 
   useEffect(() => {
-    fetchCryptoData(selectedCrypto);
-  }, [selectedCrypto, timeRange, fetchCryptoData]);
+    if (API_KEY) {
+      fetchCryptoData(selectedCrypto);
+    } else {
+      // Use mock data if no API key is set
+      generateMockCryptoData(selectedCrypto);
+    }
+  }, [selectedCrypto, timeRange, fetchCryptoData, generateMockCryptoData]);
 
-  // Auto-refresh data every 30 seconds
+  // Auto-refresh data every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchCryptoData(selectedCrypto);
-    }, 30000);
+      if (API_KEY) {
+        fetchCryptoData(selectedCrypto);
+      } else {
+        generateMockCryptoData(selectedCrypto);
+      }
+    }, 60000);
 
     return () => clearInterval(interval);
-  }, [selectedCrypto, fetchCryptoData]);
+  }, [selectedCrypto, fetchCryptoData, generateMockCryptoData]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
@@ -196,7 +269,19 @@ const CryptoChart: React.FC = () => {
   return (
     <div className="crypto-chart-container fade-in">
       <div className="chart-header">
-        <h2 className="chart-title">Live Crypto Analysis</h2>
+        <div className="header-left">
+          <h2 className="chart-title">Live Crypto Analysis</h2>
+          {lastUpdated && (
+            <div className="last-updated">
+              <span>Updated: {lastUpdated}</span>
+              <RefreshCw 
+                size={14} 
+                className="refresh-icon" 
+                onClick={() => API_KEY ? fetchCryptoData(selectedCrypto) : generateMockCryptoData(selectedCrypto)} 
+              />
+            </div>
+          )}
+        </div>
         <div className="chart-controls">
           <div className="search-container">
             <Search className="search-icon" size={16} />
@@ -279,28 +364,31 @@ const CryptoChart: React.FC = () => {
       {loading ? (
         <div className="loading-spinner">
           <div className="spinner"></div>
+          <p>Loading data...</p>
         </div>
       ) : (
         <>
           <div className="chart-content slide-in">
             {cryptoData && (
               <div className="crypto-info">
-                <img 
-                  src={selectedCryptoInfo?.icon} 
-                  alt={selectedCryptoInfo?.name}
-                  className="crypto-icon-large"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.nextElementSibling!.classList.remove('hidden');
-                  }}
-                />
-                <div className="crypto-icon-fallback-large hidden">
-                  {cryptoData.symbol.charAt(0)}
-                </div>
-                <div className="crypto-details">
-                  <h3>{cryptoData.name}</h3>
-                  <p>{cryptoData.symbol}/USD</p>
+                <div className="crypto-main-info">
+                  <img 
+                    src={selectedCryptoInfo?.icon} 
+                    alt={selectedCryptoInfo?.name}
+                    className="crypto-icon-large"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling!.classList.remove('hidden');
+                    }}
+                  />
+                  <div className="crypto-icon-fallback-large hidden">
+                    {cryptoData.symbol.charAt(0)}
+                  </div>
+                  <div className="crypto-details">
+                    <h3>{cryptoData.name}</h3>
+                    <p>{cryptoData.symbol}/USD</p>
+                  </div>
                 </div>
                 <div className="price-info">
                   <span className="current-price">{formatPrice(cryptoData.price)}</span>
@@ -357,10 +445,10 @@ const CryptoChart: React.FC = () => {
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="#6366f1"
+                    stroke={cryptoData?.change24h >= 0 ? '#10b981' : '#ef4444'}
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 5, fill: '#6366f1' }}
+                    activeDot={{ r: 5, fill: cryptoData?.change24h >= 0 ? '#10b981' : '#ef4444' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -378,6 +466,12 @@ const CryptoChart: React.FC = () => {
                   <p className="stat-label">Market Cap</p>
                   <p className="stat-value">
                     {formatVolume(cryptoData.marketCap)}
+                  </p>
+                </div>
+                <div className="stat-item">
+                  <p className="stat-label">24h Change</p>
+                  <p className={`stat-value ${cryptoData.change24h >= 0 ? 'positive' : 'negative'}`}>
+                    {cryptoData.change24h >= 0 ? '+' : ''}{cryptoData.change24h.toFixed(2)}%
                   </p>
                 </div>
               </div>
