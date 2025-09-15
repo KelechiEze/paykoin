@@ -1073,35 +1073,40 @@ const Wallets: React.FC = () => {
         <p className="text-3xl font-bold mt-2">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p className="text-sm text-gray-500 mt-1">{cryptos.length} {cryptos.length === 1 ? 'wallet' : 'wallets'}</p>
       </div>
-      
-      <div className="dashboard-card">
-        <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
-        
-        {loadingWallets ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
-          </div>
-        ) : (
-          <>
-            <div className="divide-y">
-              {cryptos.map((crypto) => (
-                <CryptoRow 
-                  key={crypto.id} 
-                  crypto={crypto} 
-                  onClick={() => setSelectedCrypto(crypto.id)} 
-                />
-              ))}
-            </div>
-            
-            <button 
-              onClick={() => setShowAddModal(true)}
-              className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              + Add New Wallet
-            </button>
-          </>
-        )}
+     <div className="dashboard-card">
+  <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
+  
+  {loadingWallets ? (
+    <div className="flex justify-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
+    </div>
+  ) : (
+    <>
+      <div className="divide-y">
+        {cryptos.map((crypto) => (
+          <CryptoRow 
+            key={crypto.id} 
+            crypto={crypto} 
+            onClick={() => setSelectedCrypto(crypto.id)} 
+          />
+        ))}
       </div>
+      
+      <button 
+        onClick={() => setShowAddModal(true)}
+        className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
+      >
+        + Add New Wallet
+      </button>
+
+      <p className="mt-4 text-sm text-gray-600 text-center">
+        If you are unable to add a new wallet, this may be due to temporary network issues. 
+        Please try logging out and signing back in before attempting again.
+      </p>
+    </>
+  )}
+</div>
+
     </div>
   );
 };

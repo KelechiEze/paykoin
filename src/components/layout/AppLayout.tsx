@@ -118,14 +118,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const location = useLocation();
   const { darkMode, language } = useSettings();
   
-  // Close sidebar on route change in mobile view
   useEffect(() => {
     if (isMobile) {
       setIsOpen(false);
     }
   }, [location.pathname, isMobile]);
   
-  // Default to open on desktop, closed on mobile
   useEffect(() => {
     setIsOpen(!isMobile);
   }, [isMobile]);
@@ -133,19 +131,16 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const toggle = () => setIsOpen(prev => !prev);
   const close = () => setIsOpen(false);
 
-  // Get the translation function
   const translate = (key: string): string => {
     return translations[language]?.[key] || key;
   };
 
   const handleContactSupport = (useGmail: boolean) => {
     if (useGmail) {
-      // Open Gmail in a new tab with pre-filled email
       const subject = encodeURIComponent("Support Request");
       const body = encodeURIComponent("Hello PayCoin Support Team,\n\nI need assistance with:");
       window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=paycoincustomercare@gmail.com&su=${subject}&body=${body}`, '_blank');
     } else {
-      // Use standard mailto link
       window.location.href = 'mailto:paycoincustomercare@gmail.com';
     }
     setContactModalOpen(false);
@@ -172,7 +167,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
           </div>
         </main>
         
-        {/* Contact Support Modal */}
         {isContactModalOpen && (
           <ContactSupportModal 
             isOpen={isContactModalOpen}
@@ -182,6 +176,9 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             translate={translate}
           />
         )}
+
+        {/* Only Tawk.to chat widget now */}
+        <TawkToWidget />
       </div>
     </SidebarContext.Provider>
   );
@@ -205,7 +202,6 @@ const Sidebar: React.FC<{
 
   return (
     <>
-      {/* Overlay for mobile */}
       {isOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-fade-in" 
@@ -213,7 +209,6 @@ const Sidebar: React.FC<{
         />
       )}
     
-      {/* Sidebar */}
       <aside className={cn(
         "fixed top-0 left-0 h-full z-50 w-64 shadow-lg transition-transform duration-300 ease-in-out transform",
         isOpen ? "translate-x-0" : "-translate-x-full",
@@ -224,7 +219,6 @@ const Sidebar: React.FC<{
           "flex items-center justify-between p-4",
           darkMode ? "border-gray-700" : "border-b"
         )}>
-          {/* Logo and PayCoin text wrapped in external link */}
           <a 
             href="https://paycoin.netlify.app/" 
             target="_blank" 
@@ -306,12 +300,10 @@ const TopNav: React.FC = () => {
   const isMobile = useIsMobile();
   const { darkMode } = useSettings();
   const navigate = useNavigate();
-
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
 
   return (
     <>
-      {/* Top Navbar */}
       <header className={cn(
         "h-16 flex items-center px-4",
         darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-b"
@@ -325,7 +317,6 @@ const TopNav: React.FC = () => {
           </button>
         )}
 
-        {/* User Profile Icon */}
         <div className="ml-auto flex items-center space-x-4">
           <button 
             onClick={() => setLogoutModalOpen(true)}
@@ -339,7 +330,6 @@ const TopNav: React.FC = () => {
         </div>
       </header>
 
-      {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className={cn(
@@ -351,7 +341,7 @@ const TopNav: React.FC = () => {
               <button 
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                 onClick={() => {
-                  localStorage.removeItem("authToken"); // Simulating logout
+                  localStorage.removeItem("authToken");
                   setLogoutModalOpen(false);
                   navigate("/login");
                 }}
@@ -372,7 +362,6 @@ const TopNav: React.FC = () => {
   );
 };
 
-// Contact Support Modal Component
 const ContactSupportModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -385,14 +374,14 @@ const ContactSupportModal: React.FC<{
   return (
     <div 
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onClose} // clicking backdrop closes
+      onClick={onClose}
     >
       <div 
         className={cn(
           "p-6 rounded-lg shadow-lg w-full max-w-md",
           darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
         )}
-        onClick={(e) => e.stopPropagation()} // prevent close when clicking inside modal
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center mb-4">
           <Mail size={48} className="text-crypto-blue mb-3" />
@@ -437,3 +426,42 @@ const ContactSupportModal: React.FC<{
     </div>
   );
 };
+
+// Tawk.to Widget Component
+const TawkToWidget: React.FC = () => {
+  useEffect(() => {
+    const s1 = document.createElement('script');
+    const s0 = document.getElementsByTagName('script')[0];
+    
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/68c7c85653558c1921183e23/1j566d6rh';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    
+    if (s0 && s0.parentNode) {
+      s0.parentNode.insertBefore(s1, s0);
+    } else {
+      document.head.appendChild(s1);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.Tawk_API = window.Tawk_API || {};
+      window.Tawk_LoadStart = new Date();
+    }
+
+    return () => {
+      if (s1.parentNode) {
+        s1.parentNode.removeChild(s1);
+      }
+    };
+  }, []);
+
+  return null;
+};
+
+declare global {
+  interface Window {
+    Tawk_API?: any;
+    Tawk_LoadStart?: Date;
+  }
+}
