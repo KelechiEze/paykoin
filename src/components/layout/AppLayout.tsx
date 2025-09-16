@@ -1,6 +1,6 @@
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, Home, Wallet, User, Settings, ChevronRight, Mail, ExternalLink } from 'lucide-react';
+import { Menu, X, Home, Wallet, User, Settings, ChevronRight, Mail, ExternalLink, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -48,6 +48,9 @@ const translations: Record<string, Record<string, string>> = {
     'Open in Gmail': 'Open in Gmail',
     'Open in Email Client': 'Open in Email Client',
     'Choose an option': 'Choose an option',
+    'Are you sure you want to logout?': 'Are you sure you want to logout?',
+    'Logout': 'Logout',
+    'Cancel': 'Cancel',
   },
   spanish: {
     Dashboard: 'Panel de Control',
@@ -63,6 +66,9 @@ const translations: Record<string, Record<string, string>> = {
     'Open in Gmail': 'Abrir en Gmail',
     'Open in Email Client': 'Abrir en cliente de correo',
     'Choose an option': 'Elige una opción',
+    'Are you sure you want to logout?': '¿Estás seguro de que quieres cerrar sesión?',
+    'Logout': 'Cerrar Sesión',
+    'Cancel': 'Cancelar',
   },
   french: {
     Dashboard: 'Tableau de Bord',
@@ -78,6 +84,9 @@ const translations: Record<string, Record<string, string>> = {
     'Open in Gmail': 'Ouvrir dans Gmail',
     'Open in Email Client': 'Ouvrir dans le client de messagerie',
     'Choose an option': 'Choisissez une option',
+    'Are you sure you want to logout?': 'Êtes-vous sûr de vouloir vous déconnecter?',
+    'Logout': 'Déconnexion',
+    'Cancel': 'Annuler',
   },
   german: {
     Dashboard: 'Übersicht',
@@ -93,6 +102,9 @@ const translations: Record<string, Record<string, string>> = {
     'Open in Gmail': 'In Gmail öffnen',
     'Open in Email Client': 'Im E-Mail-Client öffnen',
     'Choose an option': 'Wählen Sie eine Option',
+    'Are you sure you want to logout?': 'Sind Sie sicher, dass Sie sich abmelden möchten?',
+    'Logout': 'Abmelden',
+    'Cancel': 'Abbrechen',
   },
   japanese: {
     Dashboard: 'ダッシュボード',
@@ -108,6 +120,9 @@ const translations: Record<string, Record<string, string>> = {
     'Open in Gmail': 'Gmailで開く',
     'Open in Email Client': 'メールクライアントで開く',
     'Choose an option': 'オプションを選択',
+    'Are you sure you want to logout?': 'ログアウトしますか？',
+    'Logout': 'ログアウト',
+    'Cancel': 'キャンセル',
   },
 };
 
@@ -298,9 +313,13 @@ const Sidebar: React.FC<{
 const TopNav: React.FC = () => {
   const { toggle, isOpen } = useSidebar();
   const isMobile = useIsMobile();
-  const { darkMode } = useSettings();
+  const { darkMode, language } = useSettings();
   const navigate = useNavigate();
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+  
+  const translate = (key: string): string => {
+    return translations[language]?.[key] || key;
+  };
 
   return (
     <>
@@ -330,35 +349,109 @@ const TopNav: React.FC = () => {
         </div>
       </header>
 
-      {isLogoutModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={cn(
-            "p-6 rounded-lg shadow-lg w-96 max-w-[90vw] text-center",
-            darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
-          )}>
-            <h2 className="text-xl font-semibold">Are you sure you want to logout?</h2>
-            <div className="mt-4 flex justify-center space-x-4">
-              <button 
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                onClick={() => {
-                  localStorage.removeItem("authToken");
-                  setLogoutModalOpen(false);
-                  navigate("/login");
-                }}
-              >
-                Logout
-              </button>
-              <button 
-                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
-                onClick={() => setLogoutModalOpen(false)}
-              >
-                Cancel
-              </button>
+      <LogoutModal 
+        isOpen={isLogoutModalOpen}
+        onClose={() => setLogoutModalOpen(false)}
+        darkMode={darkMode}
+        translate={translate}
+        onLogout={() => {
+          localStorage.removeItem("authToken");
+          navigate("/login");
+        }}
+      />
+    </>
+  );
+};
+
+const LogoutModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  darkMode: boolean;
+  translate: (key: string) => string;
+  onLogout: () => void;
+}> = ({ isOpen, onClose, darkMode, translate, onLogout }) => {
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 300);
+  };
+
+  if (!isOpen && !isClosing) return null;
+
+  return (
+    <div 
+      className={cn(
+        "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300",
+        isClosing ? "opacity-0" : "opacity-100"
+      )}
+      onClick={handleClose}
+    >
+      <div 
+        className={cn(
+          "relative w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform transition-all duration-300",
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900",
+          isClosing ? "scale-95 opacity-0" : "scale-100 opacity-100"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Animated decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-crypto-blue to-crypto-purple"></div>
+        
+        <div className="absolute -left-12 -top-12 w-24 h-24 rounded-full bg-crypto-blue/10 animate-pulse"></div>
+        <div className="absolute -right-8 -bottom-8 w-16 h-16 rounded-full bg-crypto-purple/10 animate-pulse delay-300"></div>
+        
+        <div className="relative z-10 p-6">
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mb-4 shadow-lg">
+              <LogOut className="w-8 h-8 text-white" />
             </div>
+            <h2 className="text-xl font-semibold text-center mb-2">
+              {translate('Are you sure you want to logout?')}
+            </h2>
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              {translate('You will need to login again to access your account')}
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={onLogout}
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              {translate('Logout')}
+            </button>
+            <button
+              onClick={handleClose}
+              className={cn(
+                "w-full py-3 px-4 rounded-xl font-medium transition-all duration-200 border",
+                darkMode 
+                  ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600" 
+                  : "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200"
+              )}
+            >
+              {translate('Cancel')}
+            </button>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 
