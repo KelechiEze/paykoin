@@ -442,10 +442,10 @@ const Dashboard: React.FC = () => {
             <span>Transfer</span>
           </button>
 
-          <button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
+          {/*<button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
             <TrendingUp size={18} className="mr-2" />
             <span>Trade</span>
-          </button>
+          </button>*/}
         </div>
       </motion.section>
       

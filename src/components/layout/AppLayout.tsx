@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, Home, Wallet, User, Settings, ChevronRight, Mail, ExternalLink, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,8 @@ const translations: Record<string, Record<string, string>> = {
     'Are you sure you want to logout?': 'Are you sure you want to logout?',
     'Logout': 'Logout',
     'Cancel': 'Cancel',
+    'Session expired': 'Session expired',
+    'You have been logged out due to inactivity': 'You have been logged out due to inactivity',
   },
   spanish: {
     Dashboard: 'Panel de Control',
@@ -69,6 +71,8 @@ const translations: Record<string, Record<string, string>> = {
     'Are you sure you want to logout?': '¿Estás seguro de que quieres cerrar sesión?',
     'Logout': 'Cerrar Sesión',
     'Cancel': 'Cancelar',
+    'Session expired': 'Sesión expirada',
+    'You have been logged out due to inactivity': 'Has sido desconectado por inactividad',
   },
   french: {
     Dashboard: 'Tableau de Bord',
@@ -87,6 +91,8 @@ const translations: Record<string, Record<string, string>> = {
     'Are you sure you want to logout?': 'Êtes-vous sûr de vouloir vous déconnecter?',
     'Logout': 'Déconnexion',
     'Cancel': 'Annuler',
+    'Session expired': 'Session expirée',
+    'You have been logged out due to inactivity': 'Vous avez été déconnecté en raison de l\'inactivité',
   },
   german: {
     Dashboard: 'Übersicht',
@@ -105,6 +111,8 @@ const translations: Record<string, Record<string, string>> = {
     'Are you sure you want to logout?': 'Sind Sie sicher, dass Sie sich abmelden möchten?',
     'Logout': 'Abmelden',
     'Cancel': 'Abbrechen',
+    'Session expired': 'Sitzung abgelaufen',
+    'You have been logged out due to inactivity': 'Sie wurden aufgrund von Inaktivität abgemeldet',
   },
   japanese: {
     Dashboard: 'ダッシュボード',
@@ -117,21 +125,29 @@ const translations: Record<string, Record<string, string>> = {
     'Contact Support Message': 'カスタマーケアサポートチームに連絡しますか？',
     'Yes': 'はい',
     'No': 'いいえ',
-    'Open in Gmail': 'Gmailで開く',
-    'Open in Email Client': 'メールクライアントで開く',
+    'Open in Gmail': 'Gmailで开く',
+    'Open in Email Client': 'メールクライアントで开く',
     'Choose an option': 'オプションを選択',
     'Are you sure you want to logout?': 'ログアウトしますか？',
     'Logout': 'ログアウト',
     'Cancel': 'キャンセル',
+    'Session expired': 'セッションの期限切れ',
+    'You have been logged out due to inactivity': ' inactivityのためログアウトされました',
   },
 };
 
 export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isContactModalOpen, setContactModalOpen] = useState(false);
+  const [showInactivityModal, setShowInactivityModal] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
   const { darkMode, language } = useSettings();
+  const navigate = useNavigate();
+  
+  // Inactivity timer
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const warningTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (isMobile) {
@@ -142,6 +158,86 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   useEffect(() => {
     setIsOpen(!isMobile);
   }, [isMobile]);
+
+  // Reset inactivity timer on user activity
+  useEffect(() => {
+    const resetInactivityTimer = () => {
+      // Clear existing timers
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+      }
+      
+      // Hide warning modal if it's shown
+      setShowInactivityModal(false);
+      
+      // Set new timer for 10 minutes (600000 ms)
+      inactivityTimerRef.current = setTimeout(() => {
+        // Show warning modal
+        setShowInactivityModal(true);
+        
+        // Set timer to automatically logout after showing warning
+        warningTimerRef.current = setTimeout(() => {
+          handleAutoLogout();
+        }, 10000); // 10 seconds warning
+      }, 600000); // 10 minutes
+    };
+
+    // Initial setup
+    resetInactivityTimer();
+
+    // Event listeners for user activity
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      document.addEventListener(event, resetInactivityTimer);
+    });
+
+    // Cleanup
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, resetInactivityTimer);
+      });
+      
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      if (warningTimerRef.current) {
+        clearTimeout(warningTimerRef.current);
+      }
+    };
+  }, [location.pathname]);
+
+  const handleAutoLogout = () => {
+    localStorage.removeItem("authToken");
+    navigate("/login", { 
+      state: { 
+        message: translate('Session expired'),
+        description: translate('You have been logged out due to inactivity')
+      } 
+    });
+  };
+
+  const extendSession = () => {
+    setShowInactivityModal(false);
+    
+    // Reset the timers
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    if (warningTimerRef.current) {
+      clearTimeout(warningTimerRef.current);
+    }
+    
+    // Set new timer
+    inactivityTimerRef.current = setTimeout(() => {
+      setShowInactivityModal(true);
+      warningTimerRef.current = setTimeout(() => {
+        handleAutoLogout();
+      }, 10000);
+    }, 600000); // 10 minutes
+  };
 
   const toggle = () => setIsOpen(prev => !prev);
   const close = () => setIsOpen(false);
@@ -187,6 +283,16 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
             isOpen={isContactModalOpen}
             onClose={() => setContactModalOpen(false)}
             onConfirm={handleContactSupport}
+            darkMode={darkMode}
+            translate={translate}
+          />
+        )}
+
+        {showInactivityModal && (
+          <InactivityModal
+            isOpen={showInactivityModal}
+            onClose={extendSession}
+            onLogout={handleAutoLogout}
             darkMode={darkMode}
             translate={translate}
           />
@@ -449,6 +555,81 @@ const LogoutModal: React.FC<{
               {translate('Cancel')}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const InactivityModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onLogout: () => void;
+  darkMode: boolean;
+  translate: (key: string) => string;
+}> = ({ isOpen, onClose, onLogout, darkMode, translate }) => {
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className={cn(
+          "p-6 rounded-lg shadow-lg w-full max-w-md",
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex flex-col items-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center mb-3">
+            <LogOut className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-xl font-semibold text-center">
+            {translate('Session expired')}
+          </h2>
+        </div>
+        
+        <p className="text-center mb-4">
+          {translate('You have been logged out due to inactivity')}
+        </p>
+        
+        <p className="text-center mb-4 font-medium">
+          Logging out in {countdown} seconds...
+        </p>
+        
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onClose}
+            className="w-full py-3 px-4 bg-crypto-blue text-white rounded-xl font-medium hover:bg-blue-600 transition-all duration-200"
+          >
+            Stay Logged In
+          </button>
+          <button
+            onClick={onLogout}
+            className="w-full py-3 px-4 bg-gray-500 text-white rounded-xl font-medium hover:bg-gray-600 transition-all duration-200"
+          >
+            Logout Now
+          </button>
         </div>
       </div>
     </div>

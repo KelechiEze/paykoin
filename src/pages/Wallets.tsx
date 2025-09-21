@@ -145,6 +145,7 @@ const getDefaultWalletAddress = (symbol: string) => {
     'eth': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
     'solana':'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
     'polygon': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
+    
     'doge': 'D8d1YzJ5HyVMjRjqP1V8suyY6JqvbWPP9o',
     'usdt': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
     'xrp': 'rP4t9Q4cMT6ECa68d3NVTW77q6gb4xY6f3',

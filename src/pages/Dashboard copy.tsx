@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Eye, EyeOff, TrendingUp, TrendingDown, Activity, 
-  ArrowRight, DollarSign, Bitcoin, Wallet 
+  ArrowRight, DollarSign, Bitcoin, Wallet, MessageSquare,
+  Send, X, Bell, Search, Loader
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import CryptoChart from '@/components/layout/CryptoChart';
+// import CryptoChart from '@/components/layout/CryptoChart';
 import CryptoAssetsModal from '@/components/layout/CryptoAssetsModal';
 import { auth, db } from '@/firebase';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  doc, getDoc, onSnapshot, collection, 
+  addDoc, query, where, orderBy, serverTimestamp,
+  updateDoc, arrayUnion, arrayRemove, getDocs
+} from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
 interface MarketTrend {
@@ -28,9 +33,32 @@ interface DashboardData {
   topPerformer: string;
 }
 
+// Commenting out messaging interfaces for now
+/*
+interface Message {
+  id: string;
+  senderId: string;
+  senderEmail: string;
+  senderName: string;
+  receiverId: string;
+  receiverEmail: string;
+  content: string;
+  timestamp: any;
+  read: boolean;
+}
+
+interface User {
+  uid: string;
+  email: string;
+  displayName: string;
+}
+*/
+
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+  // const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [marketTrends, setMarketTrends] = useState<MarketTrend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +68,40 @@ const Dashboard: React.FC = () => {
     activeWallets: 0,
     topPerformer: ''
   });
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  // Commenting out messaging states for now
+  /*
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  */
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
+
+  // Array of welcome messages
+  const welcomeMessages = [
+    "Welcome back! Your financial progress is our success.",
+    "Great to see you! Let's grow your profits together.",
+    "Hello again! Your portfolio's progress brings us happiness.",
+    "Welcome! We're excited to cooperate on your financial journey.",
+    "Good to have you here! Your success is our foremost address.",
+    "Hello! Let's continue building wealth and prosperity.",
+    "Welcome back! Your financial growth is our shared quest.",
+    "Great to see you! Together we'll achieve financial greatness.",
+    "Hello again! Your profits and progress truly impress.",
+    "Welcome! Let's make your financial dreams manifest."
+  ];
+
+  // Set a random welcome message on component mount
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
+    setWelcomeMessage(welcomeMessages[randomIndex]);
+  }, []);
 
   // Fetch dashboard data from Firestore
   useEffect(() => {
@@ -100,9 +160,172 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Commenting out message fetching for now
+  /*
+  // Fetch messages for current user
+  useEffect(() => {
+    if (!user) return;
+
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      where('receiverId', '==', user.uid),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const messagesData: Message[] = [];
+      let unread = 0;
+
+      snapshot.forEach((doc) => {
+        const message = { id: doc.id, ...doc.data() } as Message;
+        messagesData.push(message);
+        if (!message.read) unread++;
+      });
+
+      setMessages(messagesData);
+      setUnreadCount(unread);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch all users for messaging
+  useEffect(() => {
+    if (!user) return;
+
+    const usersQuery = query(collection(db, 'users'));
+
+    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
+      const usersData: User[] = [];
+      snapshot.forEach((doc) => {
+        if (doc.id !== user.uid) { // Exclude current user
+          const userData = doc.data();
+          usersData.push({
+            uid: doc.id,
+            email: userData.email,
+            displayName: userData.fullName || userData.email
+          });
+        }
+      });
+      setUsers(usersData);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+  */
+
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible((prev) => !prev);
   };
+
+  // Commenting out messaging functions for now
+  /*
+  // Search for users by email
+  const searchUsers = async () => {
+    if (!searchEmail.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Search in the already fetched users first
+      const filteredUsers = users.filter(u => 
+        u.email.toLowerCase().includes(searchEmail.toLowerCase())
+      );
+      
+      // If not found in local state, query the database directly
+      if (filteredUsers.length === 0) {
+        const usersRef = collection(db, 'users');
+        const q = query(
+          usersRef, 
+          where('email', '>=', searchEmail.toLowerCase()),
+          where('email', '<=', searchEmail.toLowerCase() + '\uf8ff')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const dbUsers: User[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          if (doc.id !== user?.uid) {
+            const userData = doc.data();
+            dbUsers.push({
+              uid: doc.id,
+              email: userData.email,
+              displayName: userData.fullName || userData.email
+            });
+          }
+        });
+        
+        setSearchResults(dbUsers);
+      } else {
+        setSearchResults(filteredUsers);
+      }
+    } catch (err) {
+      console.error('Error searching users:', err);
+      setError('Failed to search users');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Send a new message
+  const sendMessage = async () => {
+    if (!user || !searchEmail.trim() || !newMessage.trim()) {
+      setError('Please enter a valid email and message');
+      return;
+    }
+
+    try {
+      // First, find the user by email
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', searchEmail.trim().toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setError('User with this email not found');
+        return;
+      }
+      
+      const receiverDoc = querySnapshot.docs[0];
+      const receiverData = receiverDoc.data();
+      
+      // Create the message
+      await addDoc(collection(db, 'messages'), {
+        senderId: user.uid,
+        senderEmail: user.email,
+        senderName: user.displayName || user.email,
+        receiverId: receiverDoc.id,
+        receiverEmail: receiverData.email,
+        content: newMessage.trim(),
+        timestamp: serverTimestamp(),
+        read: false
+      });
+
+      setNewMessage('');
+      setSearchEmail('');
+      setSearchResults([]);
+      setIsNewMessageOpen(false);
+      
+      // Show success message
+      setError(null);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message');
+    }
+  };
+
+  // Mark message as read
+  const markAsRead = async (messageId: string) => {
+    try {
+      await updateDoc(doc(db, 'messages', messageId), {
+        read: true
+      });
+    } catch (err) {
+      console.error('Error marking message as read:', err);
+    }
+  };
+  */
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -115,18 +338,42 @@ const Dashboard: React.FC = () => {
   };
 
   const formatName = (str: string) => {
-  return str
-    .replace(/([a-z])([A-Z])/g, '$1 $2')      // Add space between camelCase
-    .replace(/[_\-\.]/g, ' ')                 // Replace _ . - with space
-    .replace(/\s+/g, ' ')                     // Remove extra spaces
-    .trim()
-    .replace(/\b\w/g, char => char.toUpperCase()); // Capitalize first letters
-};
+    return str
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_\-\.]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, char => char.toUpperCase());
+  };
 
+  /*
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  */
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
+      {/* Header with Messages Icon */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
+        <div className="relative">
+          <button 
+            onClick={() => setIsMessagesOpen(true)}
+            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors relative"
+          >
+            <MessageSquare size={24} />
+            {/* Commenting out unread count for now */}
+            {/* {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )} */}
+          </button>
+        </div>
+      </div>
 
       {/* Welcome Message */}
       <motion.div 
@@ -135,17 +382,15 @@ const Dashboard: React.FC = () => {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="bg-gradient-to-r from-crypto-indigo to-crypto-blue text-white p-4 rounded-lg shadow-md"
       >
-<h2 className="text-xl font-semibold">
-  Welcome back,{' '}
-  {user?.displayName
-    ? formatName(user.displayName)
-    : user?.email
-    ? formatName(user.email.split('@')[0])
-    : 'User'}
-</h2>
-
-
-        <p className="text-sm mt-1">We're glad to have you here. Let's check your crypto performance today.</p>
+        <h2 className="text-xl font-semibold">
+          Welcome back,{' '}
+          {user?.displayName
+            ? formatName(user.displayName)
+            : user?.email
+            ? formatName(user.email.split('@')[0])
+            : 'User'}
+        </h2>
+        <p className="text-sm mt-1">{welcomeMessage}</p>
       </motion.div>
 
       {/* Balance Card */}
@@ -197,10 +442,10 @@ const Dashboard: React.FC = () => {
             <span>Transfer</span>
           </button>
 
-          <button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
+          {/*<button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
             <TrendingUp size={18} className="mr-2" />
             <span>Trade</span>
-          </button>
+          </button>*/}
         </div>
       </motion.section>
       
@@ -283,26 +528,181 @@ const Dashboard: React.FC = () => {
         )}
       </motion.section>
 
-      {/* Crypto Chart */}
-      <motion.section 
+      {/* Crypto Chart - Commented Out */}
+      {/* <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         className="dashboard-card"
       >
         <CryptoChart />
-      </motion.section>
+      </motion.section> */}
 
       {/* Crypto Assets Modal */}
       <CryptoAssetsModal 
         isOpen={isAssetsModalOpen} 
         onClose={() => setIsAssetsModalOpen(false)} 
       />
+
+      {/* Messages Modal - Coming Soon */}
+      {isMessagesOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Messages</h3>
+              <button 
+                onClick={() => setIsMessagesOpen(false)}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-8 text-center">
+              <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
+              <h4 className="text-xl font-semibold mb-2">Coming Soon</h4>
+              <p className="text-gray-500">The messaging feature is currently under development and will be available in a future update.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Commenting out the full messaging functionality for now */}
+      {/*
+      <Messages Modal />
+      {isMessagesOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Messages</h3>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => {
+                    setIsNewMessageOpen(true);
+                    setSelectedUser(null);
+                    setSearchEmail('');
+                    setSearchResults([]);
+                  }}
+                  className="p-2 rounded-full bg-crypto-blue text-white hover:bg-crypto-blue/90"
+                >
+                  <MessageSquare size={18} />
+                </button>
+                <button 
+                  onClick={() => setIsMessagesOpen(false)}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto max-h-[60vh]">
+              {messages.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>No messages yet</p>
+                  <p className="text-sm mt-2">Send a message to another registered user to start a conversation</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {messages.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className={`p-4 hover:bg-gray-50 cursor-pointer ${!message.read ? 'bg-blue-50' : ''}`}
+                      onClick={() => {
+                        if (!message.read) markAsRead(message.id);
+                        setIsNewMessageOpen(true);
+                        setSearchEmail(message.senderEmail);
+                      }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium truncate">{message.senderName}</h4>
+                          <p className="text-sm text-gray-600 truncate">{message.content}</p>
+                        </div>
+                        <div className="flex flex-col items-end ml-2">
+                          <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
+                          {!message.read && (
+                            <span className="mt-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <New Message Modal />
+      {isNewMessageOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">New Message</h3>
+              <button 
+                onClick={() => {
+                  setIsNewMessageOpen(false);
+                  setSearchEmail('');
+                  setSearchResults([]);
+                  setNewMessage('');
+                  setError(null);
+                }}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To (Email Address)
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter recipient's email..."
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Message
+                </label>
+                <textarea
+                  placeholder="Type your message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="w-full border rounded-lg p-3 min-h-[100px] resize-none"
+                />
+              </div>
+
+              {error && (
+                <div className="mb-4 text-red-500 text-sm">{error}</div>
+              )}
+
+              <button 
+                onClick={sendMessage}
+                disabled={!newMessage.trim() || !searchEmail.trim()}
+                className="w-full bg-crypto-blue text-white py-2 rounded-lg hover:bg-crypto-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                <Send size={16} className="mr-2" />
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      */}
     </div>
   );
 };
 
-// ... (Keep your existing StatCard and PercentageChange components) ...
 interface StatCardProps {
   title: string;
   value: string;
