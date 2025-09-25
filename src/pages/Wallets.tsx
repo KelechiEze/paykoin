@@ -8,7 +8,7 @@ const getTransactionTypeIcon = (transaction) => {
   switch (transaction.type) {
     case 'deposit':
     case 'received':
-      return <ArrowDownLeft className="text-green-500" size={24} />; // ✅ replaced Receive
+      return <ArrowDownLeft className="text-green-500" size={24} />;
     case 'withdrawal':
     case 'sent':
       return <Send className="text-red-500" size={24} />;
@@ -39,17 +39,14 @@ import {
 // Notification utility functions
 const sendEmailNotification = (message: string) => {
   console.log(`[EMAIL] ${message}`);
-  // In real app: API call to email service
 };
 
 const sendPushNotification = (title: string, body: string) => {
   console.log(`[PUSH] ${title}: ${body}`);
-  // In real app: Use Firebase Cloud Messaging
 };
 
 const sendSMSNotification = (message: string) => {
   console.log(`[SMS] ${message}`);
-  // In real app: API call to SMS service
 };
 
 const triggerNotifications = (
@@ -59,31 +56,27 @@ const triggerNotifications = (
     title: string;
     message: string;
   },
-  toast: any // Added toast as parameter
+  toast: any
 ) => {
   const { type, title, message } = notificationData;
 
   try {
-    // Transaction notifications
     if (type === 'transaction') {
       if (settings.emailNotifs) sendEmailNotification(message);
       if (settings.pushNotifs) sendPushNotification(title, message);
     }
     
-    // Security alerts
     if (type === 'security' && settings.securityAlerts) {
       sendEmailNotification(`SECURITY ALERT: ${message}`);
       sendSMSNotification(`Security Alert: ${message}`);
     }
     
-    // Price alerts
     if (type === 'price' && settings.priceAlerts) {
       sendPushNotification('Price Alert', message);
     }
 
   } catch (error) {
     console.error('Error sending notifications:', error);
-    // Fallback toast if notifications fail
     toast({
       variant: 'destructive',
       title: 'Notification Failed',
@@ -104,7 +97,7 @@ interface Cryptocurrency {
   isUp: boolean;
   transactions: Transaction[];
   cgId?: string;
-  imageUrl?: string; // Added for CoinGecko image URL
+  imageUrl?: string;
 }
 
 interface Transaction {
@@ -129,7 +122,7 @@ interface CGCoin {
   symbol: string;
   current_price: number;
   price_change_percentage_24h: number;
-  image: string; // Added for CoinGecko image URL
+  image: string;
 }
 
 interface User {
@@ -138,19 +131,153 @@ interface User {
   displayName: string;
 }
 
-// Default wallet addresses for popular cryptocurrencies
+// Popular cryptocurrencies with fallback data
+const POPULAR_CRYPTOS = [
+  {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    symbol: 'btc',
+    current_price: 109845,
+    price_change_percentage_24h: 2.5,
+    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png'
+  },
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'eth',
+    current_price: 3936,
+    price_change_percentage_24h: 1.8,
+    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png'
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    symbol: 'sol',
+    current_price: 199,
+    price_change_percentage_24h: 5.2,
+    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png'
+  },
+  {
+    id: 'cardano',
+    name: 'Cardano',
+    symbol: 'ada',
+    current_price: 0.78,
+    price_change_percentage_24h: -0.5,
+    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png'
+  },
+  {
+    id: 'dogecoin',
+    name: 'Dogecoin',
+    symbol: 'doge',
+    current_price: 0.23,
+    price_change_percentage_24h: 3.2,
+    image: 'https://coin-images.coingecko.com/coins/images/5/small/dogecoin.png'
+  },
+  {
+    id: 'ripple',
+    name: 'XRP',
+    symbol: 'xrp',
+    current_price: 2.80,
+    price_change_percentage_24h: 1.2,
+    image: 'https://coin-images.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png'
+  },
+  {
+    id: 'polkadot',
+    name: 'Polkadot',
+    symbol: 'dot',
+    current_price: 3.86,
+    price_change_percentage_24h: 2.1,
+    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png'
+  },
+  {
+    id: 'matic-network',
+    name: 'Polygon',
+    symbol: 'matic',
+    current_price: 0.22,
+    price_change_percentage_24h: 4.3,
+    image: 'https://coin-images.coingecko.com/coins/images/4713/small/matic-token-icon.png'
+  },
+  {
+    id: 'usdt',
+    name: 'Tether',
+    symbol: 'usdt',
+    current_price: 1.00,
+    price_change_percentage_24h: 0.0,
+    image: 'https://coin-images.coingecko.com/coins/images/325/small/tether.png'
+  },
+  {
+    id: 'asdc',
+    name: 'ASDC',
+    symbol: 'asdc',
+    current_price: 1.00,
+    price_change_percentage_24h: 0.0,
+    image: 'https://example.com/path/to/asdc-image.png'
+  },
+  {
+    id: 'bnb',
+    name: 'BNB',
+    symbol: 'bnb',
+    current_price: 994.42,
+    price_change_percentage_24h: -2.0,
+    image: 'https://coin-images.coingecko.com/coins/images/825/small/bnb-icon2_2x.png'
+  },
+  // — New additions below —
+  {
+    id: 'shiba-inu',
+    name: 'Shiba Inu',
+    symbol: 'shib',
+    current_price: 0.00001192,  
+    price_change_percentage_24h: -2.8,  
+    image: 'https://coin-images.coingecko.com/coins/images/11939/small/shiba.png'
+  },
+  {
+    id: 'avalanche',
+    name: 'Avalanche',
+    symbol: 'avax',
+    current_price: 29.75,  
+    price_change_percentage_24h: -14.2,  
+    image: 'https://coin-images.coingecko.com/coins/images/12559/small/avalanche.png'
+  },
+  {
+    id: 'chainlink',
+    name: 'Chainlink',
+    symbol: 'link',
+    current_price: 20.48,  
+    price_change_percentage_24h: -6.2,  
+    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png'
+  },
+  {
+    id: 'stellar',
+    name: 'Stellar',
+    symbol: 'xlm',
+    current_price: 0.306,  
+    price_change_percentage_24h: -5.7,  
+    image: 'https://coin-images.coingecko.com/coins/images/100/small/stellar.png'
+  },
+  {
+    id: 'trx',
+    name: 'TRON',
+    symbol: 'trx',
+    current_price: 0.2872,  
+    price_change_percentage_24h: -1.3,  
+    image: 'https://coin-images.coingecko.com/coins/images/1094/small/tron.png'
+  }
+];
+
+
 const getDefaultWalletAddress = (symbol: string) => {
   const defaultWallets = {
     'btc': 'bc1qd2wec90rdvv7jgssl9uz859vrflqaprnvppetg',
     'eth': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
-    'solana':'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
-    'polygon': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
-    
+    'sol': 'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
+    'matic': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
     'doge': 'D8d1YzJ5HyVMjRjqP1V8suyY6JqvbWPP9o',
     'usdt': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
     'xrp': 'rP4t9Q4cMT6ECa68d3NVTW77q6gb4xY6f3',
     'shib': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'usdc': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+    'usdc': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    'ada': 'addr1q9j5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5q',
+    'dot': '1q9j5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5q'
   };
   
   return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
@@ -179,7 +306,6 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
       });
   };
 
-  // Notify when address is copied if security alerts are enabled
   useEffect(() => {
     const notifyDepositAddressAccess = async () => {
       if (!currentUser || !isCopied) return;
@@ -196,7 +322,7 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
               type: 'security',
               title: 'Security Notice',
               message: `You copied your ${crypto.name} deposit address`
-            }, toast); // Added toast parameter
+            }, toast);
           }
         }
       } catch (error) {
@@ -265,7 +391,6 @@ const WithdrawModal = ({
   const { toast } = useToast();
   const [notificationSettings, setNotificationSettings] = useState<any>(null);
 
-  // Fetch notification settings when modal opens
   useEffect(() => {
     const fetchNotificationSettings = async () => {
       if (!currentUser) return;
@@ -285,7 +410,6 @@ const WithdrawModal = ({
     fetchNotificationSettings();
   }, [currentUser]);
 
-  // Simulated exchange rate
   const exchangeRate = 1;
 
   const handleWithdraw = async () => {
@@ -330,14 +454,13 @@ const WithdrawModal = ({
     setError('');
 
     try {
-      // Find recipient by email
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', recipientEmail));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
         setError('No user found with this email');
-        setIsWithdrawing(false); // Reset loading state
+        setIsWithdrawing(false);
         return;
       }
       
@@ -345,14 +468,13 @@ const WithdrawModal = ({
       const recipientId = recipientDoc.id;
       const recipientData = recipientDoc.data();
       
-      // Find recipient's wallet
       const walletsRef = collection(db, 'users', recipientId, 'wallets');
       const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
       const walletSnapshot = await getDocs(walletQuery);
       
       if (walletSnapshot.empty) {
         setError('Recipient does not have a wallet for this cryptocurrency');
-        setIsWithdrawing(false); // Reset loading state
+        setIsWithdrawing(false);
         return;
       }
       
@@ -361,7 +483,6 @@ const WithdrawModal = ({
       
       const batch = writeBatch(db);
       
-      // Update sender's wallet
       const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
       const senderNewBalance = crypto.balance - totalDeduction;
       
@@ -369,7 +490,6 @@ const WithdrawModal = ({
         cryptoBalance: senderNewBalance
       });
       
-      // Add withdrawal transaction to sender
       const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
       batch.set(senderTxRef, {
         type: 'withdrawal',
@@ -385,7 +505,6 @@ const WithdrawModal = ({
         fiatCurrency: fiatCurrency
       });
       
-      // Update recipient's wallet
       const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
       const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
       
@@ -393,7 +512,6 @@ const WithdrawModal = ({
         cryptoBalance: recipientNewBalance
       });
       
-      // Add deposit transaction to recipient
       const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
       batch.set(recipientTxRef, {
         type: 'deposit',
@@ -409,21 +527,18 @@ const WithdrawModal = ({
       
       await batch.commit();
 
-      // Trigger notifications after successful withdrawal
       if (notificationSettings) {
-        // Transaction notification
         triggerNotifications(notificationSettings, {
           type: 'transaction',
           title: 'Transaction Completed',
           message: `Sent ${withdrawAmount.toFixed(6)} ${crypto.symbol} to ${recipientEmail}`
-        }, toast); // Added toast parameter
+        }, toast);
 
-        // Security alert
         triggerNotifications(notificationSettings, {
           type: 'security',
           title: 'Security Alert',
           message: `Withdrawal of ${withdrawAmount.toFixed(6)} ${crypto.symbol} initiated from your account`
-        }, toast); // Added toast parameter
+        }, toast);
       }
 
       toast({
@@ -454,7 +569,6 @@ const WithdrawModal = ({
     }
   };
 
-  // Update fiat amount when crypto amount changes
   useEffect(() => {
     if (amount && exchangeRate) {
       const cryptoValue = parseFloat(amount);
@@ -464,7 +578,6 @@ const WithdrawModal = ({
     }
   }, [amount]);
 
-  // Update crypto amount when fiat amount changes
   useEffect(() => {
     if (fiatAmount && exchangeRate) {
       const fiatValue = parseFloat(fiatAmount);
@@ -584,19 +697,31 @@ const AddCryptoModal = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CGCoin[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
   const { toast } = useToast();
 
+  // Show popular cryptos by default
+  useEffect(() => {
+    setSearchResults(POPULAR_CRYPTOS);
+  }, []);
+
   const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm.trim()) {
+      setSearchResults(POPULAR_CRYPTOS);
+      return;
+    }
     
     setIsLoading(true);
+    setUseFallback(false);
+    
     try {
+      // Try to fetch from CoinGecko API first
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false`
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false`
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch data from CoinGecko');
+        throw new Error('API limit reached, using fallback data');
       }
       
       const data = await response.json();
@@ -606,25 +731,37 @@ const AddCryptoModal = ({
       );
       
       setSearchResults(filtered);
+      
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        variant: "destructive",
-        description: "Failed to fetch cryptocurrencies. Please try again later.",
-      });
+      console.log('CoinGecko API failed, using fallback data:', error);
+      setUseFallback(true);
+      
+      // Use fallback data from our predefined list
+      const filtered = POPULAR_CRYPTOS.filter((crypto: CGCoin) => 
+        crypto.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        crypto.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      setSearchResults(filtered);
+      
+      if (filtered.length === 0) {
+        toast({
+          description: "Showing popular cryptocurrencies. Search functionality limited.",
+        });
+        setSearchResults(POPULAR_CRYPTOS);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddCrypto = (crypto: CGCoin) => {
-    // Use default wallet address for supported cryptocurrencies
     const walletAddress = getDefaultWalletAddress(crypto.symbol);
     
     const newCrypto: Cryptocurrency = {
       id: crypto.id,
       name: crypto.name,
-      symbol: crypto.symbol,
+      symbol: crypto.symbol.toLowerCase(),
       balance: 0,
       usdValue: 0,
       address: walletAddress,
@@ -633,7 +770,7 @@ const AddCryptoModal = ({
       isUp: (crypto.price_change_percentage_24h || 0) >= 0,
       transactions: [],
       cgId: crypto.id,
-      imageUrl: crypto.image // Store CoinGecko image URL
+      imageUrl: crypto.image
     };
     
     onAdd(newCrypto);
@@ -668,6 +805,11 @@ const AddCryptoModal = ({
               {isLoading ? 'Searching...' : 'Search'}
             </button>
           </div>
+          {useFallback && (
+            <p className="text-xs text-amber-600 mt-2">
+              Using fallback data. Some cryptocurrencies may not be available.
+            </p>
+          )}
         </div>
         
         {isLoading ? (
@@ -676,10 +818,12 @@ const AddCryptoModal = ({
           </div>
         ) : searchResults.length > 0 ? (
           <div className="max-h-96 overflow-y-auto">
-            <h4 className="text-gray-600 mb-2">Search Results</h4>
+            <h4 className="text-gray-600 mb-2">
+              {searchTerm ? 'Search Results' : 'Popular Cryptocurrencies'}
+            </h4>
             <div className="space-y-2">
               {searchResults.map((crypto) => {
-                const alreadyAdded = existingCryptos.some(c => c.symbol === crypto.symbol);
+                const alreadyAdded = existingCryptos.some(c => c.symbol === crypto.symbol.toLowerCase());
                 return (
                   <div 
                     key={crypto.id} 
@@ -694,7 +838,7 @@ const AddCryptoModal = ({
                       />
                       <div>
                         <p className="font-medium">{crypto.name}</p>
-                        <p className="text-sm text-gray-500">{crypto.symbol}</p>
+                        <p className="text-sm text-gray-500">{crypto.symbol.toUpperCase()}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -721,7 +865,6 @@ const AddCryptoModal = ({
   );
 };
 
-// Transaction Detail Modal Component
 const TransactionDetailModal = ({ 
   transaction, 
   crypto, 
@@ -917,7 +1060,6 @@ const Wallets: React.FC = () => {
             walletsSnapshot.docs.map(async (walletDoc) => {
               const walletData = walletDoc.data();
               
-              // Get transactions
               let transactions: Transaction[] = [];
               try {
                 const transactionsSnapshot = await getDocs(
@@ -930,7 +1072,6 @@ const Wallets: React.FC = () => {
                     return {
                       id: doc.id,
                       ...data,
-                      // Convert Firestore Timestamp to Date
                       date: data.date?.toDate() || new Date()
                     } as Transaction;
                   });
@@ -938,7 +1079,6 @@ const Wallets: React.FC = () => {
                 console.error("Error fetching transactions:", error);
               }
               
-              // Get price data with fallback
               let currentPrice = walletData.dollarBalance / (walletData.cryptoBalance || 1);
               let priceChange = walletData.change || 0;
               
@@ -955,10 +1095,6 @@ const Wallets: React.FC = () => {
                   }
                 } catch (error) {
                   console.error("Error fetching price data:", error);
-                  toast({
-                    variant: "destructive",
-                    description: "CoinGecko API limit reached - using cached prices",
-                  });
                 }
               }
 
@@ -974,7 +1110,7 @@ const Wallets: React.FC = () => {
                 isUp: priceChange >= 0,
                 transactions,
                 cgId: walletData.cgId,
-                imageUrl: walletData.imageUrl // Added for CoinGecko image
+                imageUrl: walletData.imageUrl
               };
             })
           );
@@ -1018,7 +1154,7 @@ const Wallets: React.FC = () => {
         change: newCrypto.change,
         isUp: newCrypto.isUp,
         cgId: newCrypto.cgId,
-        imageUrl: newCrypto.imageUrl, // Store CoinGecko image URL
+        imageUrl: newCrypto.imageUrl,
         createdAt: serverTimestamp()
       });
 
@@ -1031,7 +1167,7 @@ const Wallets: React.FC = () => {
       console.error('Error adding wallet:', error);
       toast({
         variant: "destructive",
-        description: "Failed to add wallet",
+        description: "Failed to add wallet. Please try again.",
       });
     }
   };
@@ -1074,40 +1210,40 @@ const Wallets: React.FC = () => {
         <p className="text-3xl font-bold mt-2">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p className="text-sm text-gray-500 mt-1">{cryptos.length} {cryptos.length === 1 ? 'wallet' : 'wallets'}</p>
       </div>
-     <div className="dashboard-card">
-  <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
-  
-  {loadingWallets ? (
-    <div className="flex justify-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
-    </div>
-  ) : (
-    <>
-      <div className="divide-y">
-        {cryptos.map((crypto) => (
-          <CryptoRow 
-            key={crypto.id} 
-            crypto={crypto} 
-            onClick={() => setSelectedCrypto(crypto.id)} 
-          />
-        ))}
+     
+      <div className="dashboard-card">
+        <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
+        
+        {loadingWallets ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
+          </div>
+        ) : (
+          <>
+            <div className="divide-y">
+              {cryptos.map((crypto) => (
+                <CryptoRow 
+                  key={crypto.id} 
+                  crypto={crypto} 
+                  onClick={() => setSelectedCrypto(crypto.id)} 
+                />
+              ))}
+            </div>
+            
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              + Add New Wallet
+            </button>
+
+            <p className="mt-4 text-sm text-gray-600 text-center">
+              Popular cryptocurrencies are available instantly. If you don't see a specific cryptocurrency, 
+              it may not be supported in our current list.
+            </p>
+          </>
+        )}
       </div>
-      
-      <button 
-        onClick={() => setShowAddModal(true)}
-        className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
-      >
-        + Add New Wallet
-      </button>
-
-      <p className="mt-4 text-sm text-gray-600 text-center">
-        If you are unable to add a new wallet, this may be due to temporary network issues. 
-        Please try logging out and signing back in before attempting again.
-      </p>
-    </>
-  )}
-</div>
-
     </div>
   );
 };
@@ -1151,7 +1287,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const { currentUser } = useAuth();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
-  // Update local state when prop changes
   useEffect(() => {
     setLocalCrypto(crypto);
   }, [crypto]);
@@ -1167,7 +1302,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     }));
   };
   
-  // Setup price alerts
   useEffect(() => {
     const setupPriceAlerts = async () => {
       if (!currentUser) return;
@@ -1180,14 +1314,13 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
           const settings = docSnap.data();
           
           if (settings.priceAlerts) {
-            // Simulated price alert system
             const simulatePriceAlert = () => {
               if (Math.random() > 0.5) {
                 triggerNotifications(settings, {
                   type: 'price',
                   title: 'Price Alert',
                   message: `${localCrypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
-                }, toast); // Added toast parameter
+                }, toast);
               }
             };
             
