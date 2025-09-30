@@ -137,7 +137,7 @@ const POPULAR_CRYPTOS = [
     id: 'bitcoin',
     name: 'Bitcoin',
     symbol: 'btc',
-    current_price: 109845,
+    current_price: 113919,
     price_change_percentage_24h: 2.5,
     image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png'
   },
@@ -145,7 +145,7 @@ const POPULAR_CRYPTOS = [
     id: 'ethereum',
     name: 'Ethereum',
     symbol: 'eth',
-    current_price: 3936,
+    current_price: 4188.5,
     price_change_percentage_24h: 1.8,
     image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png'
   },
@@ -270,14 +270,19 @@ const getDefaultWalletAddress = (symbol: string) => {
     'btc': 'bc1qd2wec90rdvv7jgssl9uz859vrflqaprnvppetg',
     'eth': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
     'sol': 'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
+    'bnb':'0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
     'matic': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
-    'doge': 'D8d1YzJ5HyVMjRjqP1V8suyY6JqvbWPP9o',
-    'usdt': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'xrp': 'rP4t9Q4cMT6ECa68d3NVTW77q6gb4xY6f3',
-    'shib': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'usdc': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'ada': 'addr1q9j5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5q',
-    'dot': '1q9j5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5qg5h5q'
+    'doge': 'DCzMsvqxcuBhx53vLzoAc8jbCLscyizS9j',
+    'usdt': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'xrp': 'rJXaxxyvbweBNBEaedDHQNwr2WGEn34oa7',
+    'shib': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'usdc': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'ada': 'addr1q88atafqwg8xfawhcawjaqf937mgps2ttc868wl70q7r256ufmnwpr49sdlez0dxy2d25w6e2u8tuastdgnkcyy2vy9s45enzz',
+    'dot': '14EDK8CWi4bqD4Rb93NYqVDq9XqjxmA8woTGa8eB5apewRzx',
+    'trx':'TG6RLBh3Temx3GJKqhTgsr7qoBjXvF176k',
+    'xlm':'GCYNVX3UCCYV4MOSCTJ7EDBH2ZD3VLIGU3WCODBXPNLWJPWKVUWXLHRT',
+    'link': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'avax': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1'
   };
   
   return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
