@@ -8,10 +8,10 @@ const getTransactionTypeIcon = (transaction) => {
   switch (transaction.type) {
     case 'deposit':
     case 'received':
-      return <ArrowDownLeft className="text-green-500" size={24} />; // ✅ replaced Receive
+      return <ArrowDownLeft className="text-green-500" size={24} />;
     case 'withdrawal':
     case 'sent':
-      return <Send className="text-red-500" size={24} />;
+      return <Send className="text-black" size={24} />;
     default:
       return <Hash className="text-gray-500" size={24} />;
   }
@@ -39,17 +39,14 @@ import {
 // Notification utility functions
 const sendEmailNotification = (message: string) => {
   console.log(`[EMAIL] ${message}`);
-  // In real app: API call to email service
 };
 
 const sendPushNotification = (title: string, body: string) => {
   console.log(`[PUSH] ${title}: ${body}`);
-  // In real app: Use Firebase Cloud Messaging
 };
 
 const sendSMSNotification = (message: string) => {
   console.log(`[SMS] ${message}`);
-  // In real app: API call to SMS service
 };
 
 const triggerNotifications = (
@@ -59,31 +56,27 @@ const triggerNotifications = (
     title: string;
     message: string;
   },
-  toast: any // Added toast as parameter
+  toast: any
 ) => {
   const { type, title, message } = notificationData;
 
   try {
-    // Transaction notifications
     if (type === 'transaction') {
       if (settings.emailNotifs) sendEmailNotification(message);
       if (settings.pushNotifs) sendPushNotification(title, message);
     }
     
-    // Security alerts
     if (type === 'security' && settings.securityAlerts) {
       sendEmailNotification(`SECURITY ALERT: ${message}`);
       sendSMSNotification(`Security Alert: ${message}`);
     }
     
-    // Price alerts
     if (type === 'price' && settings.priceAlerts) {
       sendPushNotification('Price Alert', message);
     }
 
   } catch (error) {
     console.error('Error sending notifications:', error);
-    // Fallback toast if notifications fail
     toast({
       variant: 'destructive',
       title: 'Notification Failed',
@@ -104,7 +97,7 @@ interface Cryptocurrency {
   isUp: boolean;
   transactions: Transaction[];
   cgId?: string;
-  imageUrl?: string; // Added for CoinGecko image URL
+  imageUrl?: string;
 }
 
 interface Transaction {
@@ -129,7 +122,7 @@ interface CGCoin {
   symbol: string;
   current_price: number;
   price_change_percentage_24h: number;
-  image: string; // Added for CoinGecko image URL
+  image: string;
 }
 
 interface User {
@@ -138,19 +131,158 @@ interface User {
   displayName: string;
 }
 
-// Default wallet addresses for popular cryptocurrencies
+// Popular cryptocurrencies with fallback data
+const POPULAR_CRYPTOS = [
+  {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    symbol: 'btc',
+    current_price: 113919,
+    price_change_percentage_24h: 2.5,
+    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png'
+  },
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'eth',
+    current_price: 4188.5,
+    price_change_percentage_24h: 1.8,
+    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png'
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    symbol: 'sol',
+    current_price: 199,
+    price_change_percentage_24h: 5.2,
+    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png'
+  },
+  {
+    id: 'cardano',
+    name: 'Cardano',
+    symbol: 'ada',
+    current_price: 0.78,
+    price_change_percentage_24h: -0.5,
+    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png'
+  },
+  {
+    id: 'dogecoin',
+    name: 'Dogecoin',
+    symbol: 'doge',
+    current_price: 0.23,
+    price_change_percentage_24h: 3.2,
+    image: 'https://coin-images.coingecko.com/coins/images/5/small/dogecoin.png'
+  },
+  {
+    id: 'ripple',
+    name: 'XRP',
+    symbol: 'xrp',
+    current_price: 2.80,
+    price_change_percentage_24h: 1.2,
+    image: 'https://coin-images.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png'
+  },
+  {
+    id: 'polkadot',
+    name: 'Polkadot',
+    symbol: 'dot',
+    current_price: 3.86,
+    price_change_percentage_24h: 2.1,
+    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png'
+  },
+  {
+    id: 'matic-network',
+    name: 'Polygon',
+    symbol: 'matic',
+    current_price: 0.22,
+    price_change_percentage_24h: 4.3,
+    image: 'https://coin-images.coingecko.com/coins/images/4713/small/matic-token-icon.png'
+  },
+  {
+    id: 'usdt',
+    name: 'Tether',
+    symbol: 'usdt',
+    current_price: 1.00,
+    price_change_percentage_24h: 0.0,
+    image: 'https://coin-images.coingecko.com/coins/images/325/small/tether.png'
+  },
+  {
+    id: 'asdc',
+    name: 'ASDC',
+    symbol: 'asdc',
+    current_price: 1.00,
+    price_change_percentage_24h: 0.0,
+    image: 'https://example.com/path/to/asdc-image.png'
+  },
+  {
+    id: 'bnb',
+    name: 'BNB',
+    symbol: 'bnb',
+    current_price: 994.42,
+    price_change_percentage_24h: -2.0,
+    image: 'https://coin-images.coingecko.com/coins/images/825/small/bnb-icon2_2x.png'
+  },
+  // — New additions below —
+  {
+    id: 'shiba-inu',
+    name: 'Shiba Inu',
+    symbol: 'shib',
+    current_price: 0.00001192,  
+    price_change_percentage_24h: -2.8,  
+    image: 'https://coin-images.coingecko.com/coins/images/11939/small/shiba.png'
+  },
+  {
+    id: 'avalanche',
+    name: 'Avalanche',
+    symbol: 'avax',
+    current_price: 29.75,  
+    price_change_percentage_24h: -14.2,  
+    image: 'https://coin-images.coingecko.com/coins/images/12559/small/avalanche.png'
+  },
+  {
+    id: 'chainlink',
+    name: 'Chainlink',
+    symbol: 'link',
+    current_price: 20.48,  
+    price_change_percentage_24h: -6.2,  
+    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png'
+  },
+  {
+    id: 'stellar',
+    name: 'Stellar',
+    symbol: 'xlm',
+    current_price: 0.306,  
+    price_change_percentage_24h: -5.7,  
+    image: 'https://coin-images.coingecko.com/coins/images/100/small/stellar.png'
+  },
+  {
+    id: 'trx',
+    name: 'TRON',
+    symbol: 'trx',
+    current_price: 0.2872,  
+    price_change_percentage_24h: -1.3,  
+    image: 'https://coin-images.coingecko.com/coins/images/1094/small/tron.png'
+  }
+];
+
+
 const getDefaultWalletAddress = (symbol: string) => {
   const defaultWallets = {
     'btc': 'bc1qd2wec90rdvv7jgssl9uz859vrflqaprnvppetg',
     'eth': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
-    'solana':'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
-    'polygon': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
-    
-    'doge': 'D8d1YzJ5HyVMjRjqP1V8suyY6JqvbWPP9o',
-    'usdt': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'xrp': 'rP4t9Q4cMT6ECa68d3NVTW77q6gb4xY6f3',
-    'shib': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-    'usdc': '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+    'sol': 'Fgo1begjZvZSVVSwcPPAG47b8YqLCSZKTf8jcSprqjub',
+    'bnb':'0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'matic': '0x55db224bC13918664b57aC1B4d46fDA48E03818f',
+    'doge': 'DCzMsvqxcuBhx53vLzoAc8jbCLscyizS9j',
+    'usdt': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'xrp': 'rJXaxxyvbweBNBEaedDHQNwr2WGEn34oa7',
+    'shib': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'usdc': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'ada': 'addr1q88atafqwg8xfawhcawjaqf937mgps2ttc868wl70q7r256ufmnwpr49sdlez0dxy2d25w6e2u8tuastdgnkcyy2vy9s45enzz',
+    'dot': '14EDK8CWi4bqD4Rb93NYqVDq9XqjxmA8woTGa8eB5apewRzx',
+    'trx':'TG6RLBh3Temx3GJKqhTgsr7qoBjXvF176k',
+    'xlm':'GCYNVX3UCCYV4MOSCTJ7EDBH2ZD3VLIGU3WCODBXPNLWJPWKVUWXLHRT',
+    'link': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'avax': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1'
   };
   
   return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
@@ -179,7 +311,6 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
       });
   };
 
-  // Notify when address is copied if security alerts are enabled
   useEffect(() => {
     const notifyDepositAddressAccess = async () => {
       if (!currentUser || !isCopied) return;
@@ -196,7 +327,7 @@ const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: (
               type: 'security',
               title: 'Security Notice',
               message: `You copied your ${crypto.name} deposit address`
-            }, toast); // Added toast parameter
+            }, toast);
           }
         }
       } catch (error) {
@@ -265,7 +396,6 @@ const WithdrawModal = ({
   const { toast } = useToast();
   const [notificationSettings, setNotificationSettings] = useState<any>(null);
 
-  // Fetch notification settings when modal opens
   useEffect(() => {
     const fetchNotificationSettings = async () => {
       if (!currentUser) return;
@@ -285,8 +415,7 @@ const WithdrawModal = ({
     fetchNotificationSettings();
   }, [currentUser]);
 
-  // Simulated exchange rate
-  const exchangeRate = 1;
+  const exchangeRate = crypto.usdValue / crypto.balance || 1;
 
   const handleWithdraw = async () => {
     if (!currentUser) {
@@ -330,14 +459,13 @@ const WithdrawModal = ({
     setError('');
 
     try {
-      // Find recipient by email
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', recipientEmail));
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
         setError('No user found with this email');
-        setIsWithdrawing(false); // Reset loading state
+        setIsWithdrawing(false);
         return;
       }
       
@@ -345,14 +473,13 @@ const WithdrawModal = ({
       const recipientId = recipientDoc.id;
       const recipientData = recipientDoc.data();
       
-      // Find recipient's wallet
       const walletsRef = collection(db, 'users', recipientId, 'wallets');
       const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
       const walletSnapshot = await getDocs(walletQuery);
       
       if (walletSnapshot.empty) {
         setError('Recipient does not have a wallet for this cryptocurrency');
-        setIsWithdrawing(false); // Reset loading state
+        setIsWithdrawing(false);
         return;
       }
       
@@ -361,7 +488,6 @@ const WithdrawModal = ({
       
       const batch = writeBatch(db);
       
-      // Update sender's wallet
       const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
       const senderNewBalance = crypto.balance - totalDeduction;
       
@@ -369,10 +495,9 @@ const WithdrawModal = ({
         cryptoBalance: senderNewBalance
       });
       
-      // Add withdrawal transaction to sender
       const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
       batch.set(senderTxRef, {
-        type: 'withdrawal',
+        type: 'sent',
         amount: withdrawAmount,
         fee: fee,
         total: totalDeduction,
@@ -385,7 +510,6 @@ const WithdrawModal = ({
         fiatCurrency: fiatCurrency
       });
       
-      // Update recipient's wallet
       const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
       const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
       
@@ -393,10 +517,9 @@ const WithdrawModal = ({
         cryptoBalance: recipientNewBalance
       });
       
-      // Add deposit transaction to recipient
       const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
       batch.set(recipientTxRef, {
-        type: 'deposit',
+        type: 'received',
         amount: withdrawAmount,
         date: serverTimestamp(),
         status: 'completed',
@@ -409,26 +532,23 @@ const WithdrawModal = ({
       
       await batch.commit();
 
-      // Trigger notifications after successful withdrawal
       if (notificationSettings) {
-        // Transaction notification
         triggerNotifications(notificationSettings, {
           type: 'transaction',
           title: 'Transaction Completed',
-          message: `Sent ${withdrawAmount.toFixed(6)} ${crypto.symbol} to ${recipientEmail}`
-        }, toast); // Added toast parameter
+          message: `Sent ${withdrawAmount} ${crypto.symbol} to ${recipientEmail}`
+        }, toast);
 
-        // Security alert
         triggerNotifications(notificationSettings, {
           type: 'security',
           title: 'Security Alert',
-          message: `Withdrawal of ${withdrawAmount.toFixed(6)} ${crypto.symbol} initiated from your account`
-        }, toast); // Added toast parameter
+          message: `Transfer of ${withdrawAmount} ${crypto.symbol} initiated from your account`
+        }, toast);
       }
 
       toast({
         title: 'Transfer successful!',
-        description: `${withdrawAmount.toFixed(6)} ${crypto.symbol} sent to ${recipientEmail}`,
+        description: `${withdrawAmount} ${crypto.symbol} sent to ${recipientEmail}`,
       });
 
       onWithdrawSuccess();
@@ -448,31 +568,31 @@ const WithdrawModal = ({
 
   const handleMaxAmount = () => {
     const maxAmount = Math.max(0, crypto.balance - 0.0001);
-    setAmount(maxAmount.toFixed(8));
+    setAmount(maxAmount.toString());
     if (exchangeRate) {
-      setFiatAmount((maxAmount * exchangeRate).toFixed(2));
+      setFiatAmount((maxAmount * exchangeRate).toString());
     }
   };
 
-  // Update fiat amount when crypto amount changes
-  useEffect(() => {
-    if (amount && exchangeRate) {
-      const cryptoValue = parseFloat(amount);
+  const handleAmountChange = (value: string) => {
+    setAmount(value);
+    if (exchangeRate && value) {
+      const cryptoValue = parseFloat(value);
       if (!isNaN(cryptoValue)) {
-        setFiatAmount((cryptoValue * exchangeRate).toFixed(2));
+        setFiatAmount((cryptoValue * exchangeRate).toString());
       }
     }
-  }, [amount]);
+  };
 
-  // Update crypto amount when fiat amount changes
-  useEffect(() => {
-    if (fiatAmount && exchangeRate) {
-      const fiatValue = parseFloat(fiatAmount);
+  const handleFiatAmountChange = (value: string) => {
+    setFiatAmount(value);
+    if (exchangeRate && value) {
+      const fiatValue = parseFloat(value);
       if (!isNaN(fiatValue)) {
-        setAmount((fiatValue / exchangeRate).toFixed(8));
+        setAmount((fiatValue / exchangeRate).toString());
       }
     }
-  }, [fiatAmount]);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
@@ -507,16 +627,16 @@ const WithdrawModal = ({
                   onClick={handleMaxAmount}
                   className="text-xs text-crypto-blue hover:underline"
                 >
-                  Max: {crypto.balance.toFixed(8)}
+                  Max: {crypto.balance}
                 </button>
               </div>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
                   placeholder="0.00"
                   className="w-full p-3 border rounded-lg pl-10"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => handleAmountChange(e.target.value)}
                 />
                 <span className="absolute left-3 top-3.5 text-gray-500">{crypto.symbol}</span>
               </div>
@@ -551,7 +671,7 @@ const WithdrawModal = ({
               <span>Total to transfer</span>
               <span>
                 {amount
-                  ? `${(parseFloat(amount) + Math.max(0.0001, parseFloat(amount) * 0.005)).toFixed(8)} ${crypto.symbol}`
+                  ? `${(parseFloat(amount) + Math.max(0.0001, parseFloat(amount) * 0.005))} ${crypto.symbol}`
                   : `0.00 ${crypto.symbol}`}
               </span>
             </div>
@@ -584,19 +704,31 @@ const AddCryptoModal = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CGCoin[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
   const { toast } = useToast();
 
+  // Show popular cryptos by default
+  useEffect(() => {
+    setSearchResults(POPULAR_CRYPTOS);
+  }, []);
+
   const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm.trim()) {
+      setSearchResults(POPULAR_CRYPTOS);
+      return;
+    }
     
     setIsLoading(true);
+    setUseFallback(false);
+    
     try {
+      // Try to fetch from CoinGecko API first
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false`
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false`
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch data from CoinGecko');
+        throw new Error('API limit reached, using fallback data');
       }
       
       const data = await response.json();
@@ -606,25 +738,37 @@ const AddCryptoModal = ({
       );
       
       setSearchResults(filtered);
+      
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        variant: "destructive",
-        description: "Failed to fetch cryptocurrencies. Please try again later.",
-      });
+      console.log('CoinGecko API failed, using fallback data:', error);
+      setUseFallback(true);
+      
+      // Use fallback data from our predefined list
+      const filtered = POPULAR_CRYPTOS.filter((crypto: CGCoin) => 
+        crypto.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        crypto.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      setSearchResults(filtered);
+      
+      if (filtered.length === 0) {
+        toast({
+          description: "Showing popular cryptocurrencies. Search functionality limited.",
+        });
+        setSearchResults(POPULAR_CRYPTOS);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleAddCrypto = (crypto: CGCoin) => {
-    // Use default wallet address for supported cryptocurrencies
     const walletAddress = getDefaultWalletAddress(crypto.symbol);
     
     const newCrypto: Cryptocurrency = {
       id: crypto.id,
       name: crypto.name,
-      symbol: crypto.symbol,
+      symbol: crypto.symbol.toLowerCase(),
       balance: 0,
       usdValue: 0,
       address: walletAddress,
@@ -633,7 +777,7 @@ const AddCryptoModal = ({
       isUp: (crypto.price_change_percentage_24h || 0) >= 0,
       transactions: [],
       cgId: crypto.id,
-      imageUrl: crypto.image // Store CoinGecko image URL
+      imageUrl: crypto.image
     };
     
     onAdd(newCrypto);
@@ -668,6 +812,11 @@ const AddCryptoModal = ({
               {isLoading ? 'Searching...' : 'Search'}
             </button>
           </div>
+          {useFallback && (
+            <p className="text-xs text-amber-600 mt-2">
+              Using fallback data. Some cryptocurrencies may not be available.
+            </p>
+          )}
         </div>
         
         {isLoading ? (
@@ -676,10 +825,12 @@ const AddCryptoModal = ({
           </div>
         ) : searchResults.length > 0 ? (
           <div className="max-h-96 overflow-y-auto">
-            <h4 className="text-gray-600 mb-2">Search Results</h4>
+            <h4 className="text-gray-600 mb-2">
+              {searchTerm ? 'Search Results' : 'Popular Cryptocurrencies'}
+            </h4>
             <div className="space-y-2">
               {searchResults.map((crypto) => {
-                const alreadyAdded = existingCryptos.some(c => c.symbol === crypto.symbol);
+                const alreadyAdded = existingCryptos.some(c => c.symbol === crypto.symbol.toLowerCase());
                 return (
                   <div 
                     key={crypto.id} 
@@ -694,7 +845,7 @@ const AddCryptoModal = ({
                       />
                       <div>
                         <p className="font-medium">{crypto.name}</p>
-                        <p className="text-sm text-gray-500">{crypto.symbol}</p>
+                        <p className="text-sm text-gray-500">{crypto.symbol.toUpperCase()}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -721,7 +872,6 @@ const AddCryptoModal = ({
   );
 };
 
-// Transaction Detail Modal Component
 const TransactionDetailModal = ({ 
   transaction, 
   crypto, 
@@ -759,7 +909,7 @@ const TransactionDetailModal = ({
       case 'received':
         return 'Received';
       case 'withdrawal':
-        return 'Withdrawal';
+        return 'Sent';
       case 'sent':
         return 'Sent';
       default:
@@ -784,7 +934,7 @@ const TransactionDetailModal = ({
   const getAmountColor = () => {
     return transaction.type === 'deposit' || transaction.type === 'received' 
       ? 'text-green-600' 
-      : 'text-red-500';
+      : 'text-black';
   };
 
   return (
@@ -917,7 +1067,6 @@ const Wallets: React.FC = () => {
             walletsSnapshot.docs.map(async (walletDoc) => {
               const walletData = walletDoc.data();
               
-              // Get transactions
               let transactions: Transaction[] = [];
               try {
                 const transactionsSnapshot = await getDocs(
@@ -930,7 +1079,6 @@ const Wallets: React.FC = () => {
                     return {
                       id: doc.id,
                       ...data,
-                      // Convert Firestore Timestamp to Date
                       date: data.date?.toDate() || new Date()
                     } as Transaction;
                   });
@@ -938,7 +1086,6 @@ const Wallets: React.FC = () => {
                 console.error("Error fetching transactions:", error);
               }
               
-              // Get price data with fallback
               let currentPrice = walletData.dollarBalance / (walletData.cryptoBalance || 1);
               let priceChange = walletData.change || 0;
               
@@ -955,10 +1102,6 @@ const Wallets: React.FC = () => {
                   }
                 } catch (error) {
                   console.error("Error fetching price data:", error);
-                  toast({
-                    variant: "destructive",
-                    description: "CoinGecko API limit reached - using cached prices",
-                  });
                 }
               }
 
@@ -974,7 +1117,7 @@ const Wallets: React.FC = () => {
                 isUp: priceChange >= 0,
                 transactions,
                 cgId: walletData.cgId,
-                imageUrl: walletData.imageUrl // Added for CoinGecko image
+                imageUrl: walletData.imageUrl
               };
             })
           );
@@ -1018,7 +1161,7 @@ const Wallets: React.FC = () => {
         change: newCrypto.change,
         isUp: newCrypto.isUp,
         cgId: newCrypto.cgId,
-        imageUrl: newCrypto.imageUrl, // Store CoinGecko image URL
+        imageUrl: newCrypto.imageUrl,
         createdAt: serverTimestamp()
       });
 
@@ -1031,7 +1174,7 @@ const Wallets: React.FC = () => {
       console.error('Error adding wallet:', error);
       toast({
         variant: "destructive",
-        description: "Failed to add wallet",
+        description: "Failed to add wallet. Please try again.",
       });
     }
   };
@@ -1074,40 +1217,40 @@ const Wallets: React.FC = () => {
         <p className="text-3xl font-bold mt-2">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p className="text-sm text-gray-500 mt-1">{cryptos.length} {cryptos.length === 1 ? 'wallet' : 'wallets'}</p>
       </div>
-     <div className="dashboard-card">
-  <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
-  
-  {loadingWallets ? (
-    <div className="flex justify-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
-    </div>
-  ) : (
-    <>
-      <div className="divide-y">
-        {cryptos.map((crypto) => (
-          <CryptoRow 
-            key={crypto.id} 
-            crypto={crypto} 
-            onClick={() => setSelectedCrypto(crypto.id)} 
-          />
-        ))}
+     
+      <div className="dashboard-card">
+        <h2 className="text-xl font-semibold mb-6">Your Crypto Assets</h2>
+        
+        {loadingWallets ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
+          </div>
+        ) : (
+          <>
+            <div className="divide-y">
+              {cryptos.map((crypto) => (
+                <CryptoRow 
+                  key={crypto.id} 
+                  crypto={crypto} 
+                  onClick={() => setSelectedCrypto(crypto.id)} 
+                />
+              ))}
+            </div>
+            
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              + Add New Wallet
+            </button>
+
+            <p className="mt-4 text-sm text-gray-600 text-center">
+              Popular cryptocurrencies are available instantly. If you don't see a specific cryptocurrency, 
+              it may not be supported in our current list.
+            </p>
+          </>
+        )}
       </div>
-      
-      <button 
-        onClick={() => setShowAddModal(true)}
-        className="w-full mt-6 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
-      >
-        + Add New Wallet
-      </button>
-
-      <p className="mt-4 text-sm text-gray-600 text-center">
-        If you are unable to add a new wallet, this may be due to temporary network issues. 
-        Please try logging out and signing back in before attempting again.
-      </p>
-    </>
-  )}
-</div>
-
     </div>
   );
 };
@@ -1135,7 +1278,7 @@ const CryptoRow: React.FC<{ crypto: Cryptocurrency; onClick: () => void }> = ({ 
         </div>
         <div className="text-left">
           <h3 className="font-medium">{crypto.name}</h3>
-          <p className="text-sm text-gray-500">{crypto.balance.toFixed(8)} {crypto.symbol.toUpperCase()}</p>
+          <p className="text-sm text-gray-500">{crypto.balance} {crypto.symbol.toUpperCase()}</p>
         </div>
       </div>
     </button>
@@ -1151,7 +1294,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const { currentUser } = useAuth();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
-  // Update local state when prop changes
   useEffect(() => {
     setLocalCrypto(crypto);
   }, [crypto]);
@@ -1167,7 +1309,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     }));
   };
   
-  // Setup price alerts
   useEffect(() => {
     const setupPriceAlerts = async () => {
       if (!currentUser) return;
@@ -1180,14 +1321,13 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
           const settings = docSnap.data();
           
           if (settings.priceAlerts) {
-            // Simulated price alert system
             const simulatePriceAlert = () => {
               if (Math.random() > 0.5) {
                 triggerNotifications(settings, {
                   type: 'price',
                   title: 'Price Alert',
                   message: `${localCrypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
-                }, toast); // Added toast parameter
+                }, toast);
               }
             };
             
@@ -1243,6 +1383,11 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     }
     
     window.open(explorerUrl, '_blank');
+  };
+
+  const getUsdValue = (amount: number) => {
+    const exchangeRate = localCrypto.usdValue / localCrypto.balance;
+    return amount * exchangeRate;
   };
   
   return (
@@ -1302,7 +1447,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <p className="text-gray-500 mb-1">Balance</p>
-            <h3 className="text-3xl font-bold">{localCrypto.balance.toFixed(8)} {localCrypto.symbol.toUpperCase()}</h3>
+            <h3 className="text-3xl font-bold">{localCrypto.balance} {localCrypto.symbol.toUpperCase()}</h3>
             <p className="mt-1 text-xl">${localCrypto.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           
@@ -1365,57 +1510,121 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         </div>
       </div>
       
-      <div className="dashboard-card">
-        <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
-        {localCrypto.transactions.length > 0 ? (
-          <div className="space-y-4">
-            {localCrypto.transactions
-              .sort((a, b) => b.date.getTime() - a.date.getTime())
-              .map((tx) => (
-                <button
-                  key={tx.id}
-                  onClick={() => setSelectedTransaction(tx)}
-                  className="w-full flex justify-between items-center p-4 border rounded-xl bg-white hover:bg-gray-50 transition-colors text-left"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                      {tx.type === 'deposit' || tx.type === 'received' ? (
-                        <ArrowDownLeft className="text-green-500" size={20} />
-                      ) : (
-                        <ArrowUpRight className="text-red-500" size={20} />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium capitalize">{tx.type}</p>
-                      <p className="text-sm text-gray-500">
-                        {tx.date.toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-red-500'}`}>
-                      {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
-                      {tx.amount} {localCrypto.symbol.toUpperCase()}
-                    </p>
-                    <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
-                      {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-          </div>
-        ) : (
-          <div className="text-center py-10 text-gray-500">
-            <p>No transactions found for this wallet</p>
-            <button 
-              onClick={() => setShowTransferModal(true)}
-              className="mt-4 text-crypto-blue font-medium hover:underline"
-            >
-              Make your first transaction
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="dashboard-card">
+  <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
+  {localCrypto.transactions.length > 0 ? (
+    <div className="space-y-4">
+      {localCrypto.transactions
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .map((tx) => (
+          <button
+            key={tx.id}
+            onClick={() => setSelectedTransaction(tx)}
+            className="w-full flex justify-between items-center p-4 border rounded-xl bg-white hover:bg-gray-50 transition-colors text-left group"
+          >
+            <div className="flex items-center">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 transition-all duration-200 ${
+                  tx.type === 'deposit' || tx.type === 'received'
+                    ? 'bg-gradient-to-br from-green-50 to-green-100 group-hover:from-green-100 group-hover:to-green-200'
+                    : 'bg-gradient-to-br from-red-50 to-red-100 group-hover:from-red-100 group-hover:to-red-200'
+                }`}
+              >
+                {tx.type === 'deposit' || tx.type === 'received' ? (
+                  <ArrowDownLeft
+                    size={20}
+                    strokeWidth={2.5}
+                    style={{
+                      stroke: 'url(#greenGradient)',
+                    }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="greenGradient"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="1"
+                      >
+                        <stop offset="0%" stopColor="#22c55e" />
+                        <stop offset="100%" stopColor="#16a34a" />
+                      </linearGradient>
+                    </defs>
+                  </ArrowDownLeft>
+                ) : (
+                  <ArrowUpRight
+                    size={20}
+                    strokeWidth={2.5}
+                    style={{
+                      stroke: 'url(#redGradient)',
+                    }}
+                  >
+                    <defs>
+                      <linearGradient
+                        id="redGradient"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="1"
+                      >
+                        <stop offset="0%" stopColor="#ef4444" />
+                        <stop offset="100%" stopColor="#dc2626" />
+                      </linearGradient>
+                    </defs>
+                  </ArrowUpRight>
+                )}
+              </div>
+
+              <div>
+                <p className="font-medium text-sm md:text-base capitalize">
+                  {tx.type === 'withdrawal' ? 'sent' : tx.type}
+                </p>
+                <p className="text-xs md:text-sm text-gray-500">
+                  {tx.date.toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p
+                className={`font-semibold text-sm md:text-base ${
+                  tx.type === 'deposit' || tx.type === 'received'
+                    ? 'text-gradient-blue-purple'
+                    : 'text-gradient-blue-indigo'
+                }`}
+              >
+                {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
+                {tx.amount} {localCrypto.symbol.toUpperCase()}
+              </p>
+
+              <p className="text-xs text-gray-500">
+                ${getUsdValue(tx.amount).toFixed(2)}
+              </p>
+
+              <p
+                className={`text-xs ${
+                  tx.status === 'completed' ? 'text-green-500' : 'text-orange-500'
+                }`}
+              >
+                {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+              </p>
+            </div>
+          </button>
+        ))}
+    </div>
+  ) : (
+    <div className="text-center py-10 text-gray-500">
+      <p>No transactions found for this wallet</p>
+      <button
+        onClick={() => setShowTransferModal(true)}
+        className="mt-4 text-gradient-blue-purple font-medium hover:underline"
+      >
+        Make your first transaction
+      </button>
+    </div>
+  )}
+</div>
+
     </div>
   );
 };
