@@ -33,8 +33,7 @@ import {
   onSnapshot,
   getDocs,
   serverTimestamp,
-  writeBatch,
-  Timestamp
+  writeBatch
 } from 'firebase/firestore';
 
 // Notification utility functions
@@ -115,9 +114,6 @@ interface Transaction {
   fiatCurrency?: string;
   symbol?: string;
   total?: number;
-  pendingUntil?: Date;
-  recipientAddress?: string;
-  senderAddress?: string;
 }
 
 interface CGCoin {
@@ -292,72 +288,6 @@ const getDefaultWalletAddress = (symbol: string) => {
   return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
 };
 
-// Validate wallet address format
-const validateWalletAddress = (address: string, symbol: string): boolean => {
-  if (!address || address.trim() === '') return false;
-  
-  const addressFormats = {
-    'btc': /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/,
-    'eth': /^0x[a-fA-F0-9]{40}$/,
-    'sol': /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
-    'bnb': /^(bnb1|[bn]1)[a-z0-9]{38,58}$/,
-    'matic': /^0x[a-fA-F0-9]{40}$/,
-    'doge': /^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$/,
-    'usdt': /^0x[a-fA-F0-9]{40}$/,
-    'xrp': /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/,
-    'shib': /^0x[a-fA-F0-9]{40}$/,
-    'usdc': /^0x[a-fA-F0-9]{40}$/,
-    'ada': /^addr1[0-9a-z]{58}$/,
-    'dot': /^1[1-9A-HJ-NP-Za-km-z]{47}$/,
-    'trx': /^T[A-Za-z1-9]{33}$/,
-    'xlm': /^G[ABCDEFGHIJKLMNOPQRSTUVWXYZ234567]{55}$/,
-    'link': /^0x[a-fA-F0-9]{40}$/,
-    'avax': /^0x[a-fA-F0-9]{40}$/
-  };
-  
-  const format = addressFormats[symbol.toLowerCase()];
-  if (!format) {
-    // For unknown cryptocurrencies, do basic validation
-    return address.length >= 20 && address.length <= 100;
-  }
-  
-  return format.test(address);
-};
-
-// Find user by wallet address
-const findUserByWalletAddress = async (walletAddress: string, symbol: string) => {
-  try {
-    const usersRef = collection(db, 'users');
-    const walletsQuery = query(
-      collectionGroup(db, 'wallets'),
-      where('walletAddress', '==', walletAddress),
-      where('symbol', '==', symbol.toLowerCase())
-    );
-    
-    const querySnapshot = await getDocs(walletsQuery);
-    
-    if (!querySnapshot.empty) {
-      const walletDoc = querySnapshot.docs[0];
-      const userId = walletDoc.ref.parent.parent?.id;
-      
-      if (userId) {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-          return {
-            id: userId,
-            ...userDoc.data()
-          };
-        }
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error finding user by wallet address:', error);
-    return null;
-  }
-};
-
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
@@ -456,13 +386,12 @@ const WithdrawModal = ({
   onClose: () => void;
   onWithdrawSuccess: () => void;
 }) => {
-  const [recipient, setRecipient] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [amount, setAmount] = useState('');
   const [fiatAmount, setFiatAmount] = useState('');
   const [fiatCurrency, setFiatCurrency] = useState('USD');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [error, setError] = useState('');
-  const [transferMethod, setTransferMethod] = useState<'email' | 'wallet'>('email');
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [notificationSettings, setNotificationSettings] = useState<any>(null);
@@ -508,27 +437,14 @@ const WithdrawModal = ({
       return;
     }
 
-    if (!recipient.trim()) {
-      setError('Please enter a recipient email or wallet address');
+    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      setError('Please enter a valid email address');
       return;
     }
 
-    // Validate based on transfer method
-    if (transferMethod === 'email') {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-        setError('Please enter a valid email address');
-        return;
-      }
-      if (recipient === currentUser.email) {
-        setError('You cannot send to your own email');
-        return;
-      }
-    } else {
-      // Wallet address validation
-      if (!validateWalletAddress(recipient, crypto.symbol)) {
-        setError(`Please enter a valid ${crypto.name} wallet address`);
-        return;
-      }
+    if (recipientEmail === currentUser.email) {
+      setError('You cannot send to your own email');
+      return;
     }
 
     const fee = Math.max(0.0001, withdrawAmount * 0.005);
@@ -543,39 +459,20 @@ const WithdrawModal = ({
     setError('');
 
     try {
-      let recipientId: string | null = null;
-      let recipientEmail: string | null = null;
-      let recipientWalletAddress: string | null = null;
-
-      if (transferMethod === 'email') {
-        // Find user by email
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', recipient));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-          setError('No user found with this email');
-          setIsWithdrawing(false);
-          return;
-        }
-        
-        const recipientDoc = querySnapshot.docs[0];
-        recipientId = recipientDoc.id;
-        recipientEmail = recipient;
-      } else {
-        // Find user by wallet address
-        const userData = await findUserByWalletAddress(recipient, crypto.symbol);
-        if (!userData) {
-          setError('No user found with this wallet address');
-          setIsWithdrawing(false);
-          return;
-        }
-        recipientId = userData.id;
-        recipientEmail = userData.email;
-        recipientWalletAddress = recipient;
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', recipientEmail));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setError('No user found with this email');
+        setIsWithdrawing(false);
+        return;
       }
-
-      // Get recipient's wallet
+      
+      const recipientDoc = querySnapshot.docs[0];
+      const recipientId = recipientDoc.id;
+      const recipientData = recipientDoc.data();
+      
       const walletsRef = collection(db, 'users', recipientId, 'wallets');
       const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
       const walletSnapshot = await getDocs(walletQuery);
@@ -591,7 +488,6 @@ const WithdrawModal = ({
       
       const batch = writeBatch(db);
       
-      // Update sender's wallet balance immediately
       const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
       const senderNewBalance = crypto.balance - totalDeduction;
       
@@ -599,7 +495,6 @@ const WithdrawModal = ({
         cryptoBalance: senderNewBalance
       });
       
-      // Create sender transaction (completed immediately)
       const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
       batch.set(senderTxRef, {
         type: 'sent',
@@ -608,38 +503,31 @@ const WithdrawModal = ({
         total: totalDeduction,
         date: serverTimestamp(),
         status: 'completed',
-        to: transferMethod === 'email' ? recipient : recipientWalletAddress,
-        toEmail: recipientEmail,
-        note: `Sent to ${transferMethod === 'email' ? recipientEmail : recipientWalletAddress}`,
+        to: recipientEmail,
+        note: `Sent to ${recipientEmail}`,
         symbol: crypto.symbol,
         fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
-        fiatCurrency: fiatCurrency,
-        recipientAddress: recipientWalletAddress || recipientWalletData.walletAddress,
-        transferMethod: transferMethod
+        fiatCurrency: fiatCurrency
       });
       
-      // Update recipient's wallet balance (immediately for internal tracking)
       const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
+      const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
       
-      // Create recipient transaction with 5-minute delay
+      batch.update(recipientWalletRef, {
+        cryptoBalance: recipientNewBalance
+      });
+      
       const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
-      const pendingUntil = new Date();
-      pendingUntil.setMinutes(pendingUntil.getMinutes() + 5); // 5 minutes delay
-      
       batch.set(recipientTxRef, {
         type: 'received',
         amount: withdrawAmount,
         date: serverTimestamp(),
-        status: 'pending',
-        pendingUntil: Timestamp.fromDate(pendingUntil),
+        status: 'completed',
         from: currentUser.email,
-        fromAddress: crypto.address,
-        note: `Receiving from ${currentUser.email}`,
+        note: `Received from ${currentUser.email}`,
         symbol: crypto.symbol,
         fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
-        fiatCurrency: fiatCurrency,
-        senderAddress: crypto.address,
-        transferMethod: transferMethod
+        fiatCurrency: fiatCurrency
       });
       
       await batch.commit();
@@ -647,8 +535,8 @@ const WithdrawModal = ({
       if (notificationSettings) {
         triggerNotifications(notificationSettings, {
           type: 'transaction',
-          title: 'Transaction Initiated',
-          message: `Sent ${withdrawAmount} ${crypto.symbol} to ${transferMethod === 'email' ? recipientEmail : 'wallet address'}`
+          title: 'Transaction Completed',
+          message: `Sent ${withdrawAmount} ${crypto.symbol} to ${recipientEmail}`
         }, toast);
 
         triggerNotifications(notificationSettings, {
@@ -659,8 +547,8 @@ const WithdrawModal = ({
       }
 
       toast({
-        title: 'Transfer initiated!',
-        description: `${withdrawAmount} ${crypto.symbol} sent. Recipient will receive it in 5 minutes.`,
+        title: 'Transfer successful!',
+        description: `${withdrawAmount} ${crypto.symbol} sent to ${recipientEmail}`,
       });
 
       onWithdrawSuccess();
@@ -717,55 +605,17 @@ const WithdrawModal = ({
         </div>
 
         <div className="space-y-4">
-          {/* Transfer Method Selection */}
           <div>
-            <label className="block text-gray-700 mb-2">Transfer Method</label>
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => setTransferMethod('email')}
-                className={`flex-1 py-2 px-4 rounded-lg border ${
-                  transferMethod === 'email'
-                    ? 'bg-crypto-blue text-white border-crypto-blue'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                } transition-colors`}
-              >
-                Email
-              </button>
-              <button
-                type="button"
-                onClick={() => setTransferMethod('wallet')}
-                className={`flex-1 py-2 px-4 rounded-lg border ${
-                  transferMethod === 'wallet'
-                    ? 'bg-crypto-blue text-white border-crypto-blue'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                } transition-colors`}
-              >
-                Wallet Address
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 mb-2">
-              {transferMethod === 'email' ? 'Recipient Email Address' : 'Recipient Wallet Address'}
-            </label>
+            <label className="block text-gray-700 mb-2">Recipient Email Address</label>
             <input
-              type={transferMethod === 'email' ? 'email' : 'text'}
-              placeholder={
-                transferMethod === 'email' 
-                  ? "Enter recipient's email" 
-                  : `Enter ${crypto.name} wallet address`
-              }
+              type="email"
+              placeholder="Enter recipient's email"
               className="w-full p-3 border rounded-lg"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">
-              {transferMethod === 'email' 
-                ? 'The recipient must have a registered account and a wallet for this cryptocurrency'
-                : 'Enter a valid wallet address for the recipient'
-              }
+              The recipient must have a registered account and a {crypto.symbol} wallet
             </p>
           </div>
 
@@ -816,10 +666,6 @@ const WithdrawModal = ({
             <div className="flex justify-between text-sm mb-1">
               <span className="text-gray-600">Network Fee</span>
               <span>0.5% (min 0.0001 {crypto.symbol})</span>
-            </div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-gray-600">Processing Time</span>
-              <span className="text-amber-600">~5 minutes</span>
             </div>
             <div className="flex justify-between font-medium">
               <span>Total to transfer</span>
@@ -1080,26 +926,15 @@ const TransactionDetailModal = ({
   
   const getDirectionValue = () => {
     if (transaction.type === 'deposit' || transaction.type === 'received') {
-      return transaction.from || transaction.senderAddress || 'Unknown';
+      return transaction.from || 'Unknown';
     }
-    return transaction.to || transaction.recipientAddress || 'Unknown';
+    return transaction.to || 'Unknown';
   };
   
   const getAmountColor = () => {
     return transaction.type === 'deposit' || transaction.type === 'received' 
       ? 'text-green-600' 
       : 'text-black';
-  };
-
-  const getTimeRemaining = () => {
-    if (transaction.status === 'pending' && transaction.pendingUntil) {
-      const now = new Date();
-      const pendingUntil = new Date(transaction.pendingUntil);
-      const diffMs = pendingUntil.getTime() - now.getTime();
-      const diffMins = Math.max(0, Math.ceil(diffMs / 60000));
-      return `${diffMins} minute${diffMins !== 1 ? 's' : ''}`;
-    }
-    return null;
   };
 
   return (
@@ -1121,12 +956,6 @@ const TransactionDetailModal = ({
             {transaction.type === 'withdrawal' || transaction.type === 'sent' ? '-' : '+'}
             {transaction.amount} {crypto.symbol.toUpperCase()}
           </p>
-          {transaction.status === 'pending' && (
-            <div className="mt-2 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-medium flex items-center">
-              <Clock size={14} className="mr-1" />
-              Pending ({getTimeRemaining()})
-            </div>
-          )}
         </div>
         
         <div className="space-y-4">
@@ -1134,10 +963,9 @@ const TransactionDetailModal = ({
             <div className="flex justify-between mb-3">
               <span className="text-gray-500">Status</span>
               <span className={cn(
-                "font-medium flex items-center",
+                "font-medium",
                 transaction.status === 'completed' ? 'text-green-600' : 'text-amber-600'
               )}>
-                {transaction.status === 'pending' && <Clock size={14} className="mr-1" />}
                 {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
               </span>
             </div>
@@ -1226,45 +1054,6 @@ const Wallets: React.FC = () => {
     }
   }, [currentUser, authLoading, navigate]);
 
-  // Function to process pending transactions
-  const processPendingTransactions = async (walletRef: any, transactions: any[]) => {
-    const now = new Date();
-    const batch = writeBatch(db);
-    let hasUpdates = false;
-
-    for (const tx of transactions) {
-      if (tx.status === 'pending' && tx.pendingUntil) {
-        const pendingUntil = tx.pendingUntil.toDate();
-        if (now >= pendingUntil) {
-          // Update transaction status to completed
-          const txRef = doc(walletRef, 'transactions', tx.id);
-          batch.update(txRef, {
-            status: 'completed'
-          });
-          hasUpdates = true;
-
-          // Update wallet balance
-          const walletDoc = await getDoc(walletRef);
-          if (walletDoc.exists()) {
-            const walletData = walletDoc.data();
-            const newBalance = (walletData.cryptoBalance || 0) + tx.amount;
-            batch.update(walletRef, {
-              cryptoBalance: newBalance
-            });
-          }
-        }
-      }
-    }
-
-    if (hasUpdates) {
-      try {
-        await batch.commit();
-      } catch (error) {
-        console.error('Error processing pending transactions:', error);
-      }
-    }
-  };
-
   useEffect(() => {
     if (!authChecked || !currentUser) return;
 
@@ -1277,47 +1066,22 @@ const Wallets: React.FC = () => {
           const updatedCryptos: Cryptocurrency[] = await Promise.all(
             walletsSnapshot.docs.map(async (walletDoc) => {
               const walletData = walletDoc.data();
-              const walletRef = doc(db, 'users', currentUser.uid, 'wallets', walletDoc.id);
               
               let transactions: Transaction[] = [];
               try {
                 const transactionsSnapshot = await getDocs(
                   collection(walletDoc.ref, 'transactions')
                 );
-                
-                // Process pending transactions first
-                const rawTransactions = transactionsSnapshot.docs
+                transactions = transactionsSnapshot.docs
                   .filter(doc => doc.id !== 'initial')
                   .map(doc => {
                     const data = doc.data();
                     return {
                       id: doc.id,
                       ...data,
-                      date: data.date?.toDate() || new Date(),
-                      pendingUntil: data.pendingUntil?.toDate()
+                      date: data.date?.toDate() || new Date()
                     } as Transaction;
                   });
-
-                // Check and process any pending transactions that are ready
-                await processPendingTransactions(walletRef, rawTransactions);
-
-                // Re-fetch transactions after processing
-                const updatedTransactionsSnapshot = await getDocs(
-                  collection(walletDoc.ref, 'transactions')
-                );
-                
-                transactions = updatedTransactionsSnapshot.docs
-                  .filter(doc => doc.id !== 'initial')
-                  .map(doc => {
-                    const data = doc.data();
-                    return {
-                      id: doc.id,
-                      ...data,
-                      date: data.date?.toDate() || new Date(),
-                      pendingUntil: data.pendingUntil?.toDate()
-                    } as Transaction;
-                  });
-
               } catch (error) {
                 console.error("Error fetching transactions:", error);
               }
@@ -1625,13 +1389,6 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     const exchangeRate = localCrypto.usdValue / localCrypto.balance;
     return amount * exchangeRate;
   };
-
-  const getTimeRemaining = (pendingUntil: Date) => {
-    const now = new Date();
-    const diffMs = pendingUntil.getTime() - now.getTime();
-    const diffMins = Math.max(0, Math.ceil(diffMs / 60000));
-    return `${diffMins} minute${diffMins !== 1 ? 's' : ''}`;
-  };
   
   return (
     <div className="animate-fade-in">
@@ -1763,106 +1520,34 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                 <button
                   key={tx.id}
                   onClick={() => setSelectedTransaction(tx)}
-                  className="w-full flex justify-between items-center p-4 border rounded-xl bg-white hover:bg-gray-50 transition-colors text-left group"
+                  className="w-full flex justify-between items-center p-4 border rounded-xl bg-white hover:bg-gray-50 transition-colors text-left"
                 >
                   <div className="flex items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 transition-all duration-200 ${
-                        tx.type === 'deposit' || tx.type === 'received'
-                          ? 'bg-gradient-to-br from-green-50 to-green-100 group-hover:from-green-100 group-hover:to-green-200'
-                          : 'bg-gradient-to-br from-red-50 to-red-100 group-hover:from-red-100 group-hover:to-red-200'
-                      }`}
-                    >
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
                       {tx.type === 'deposit' || tx.type === 'received' ? (
-                        <ArrowDownLeft
-                          size={20}
-                          strokeWidth={2.5}
-                          style={{
-                            stroke: 'url(#greenGradient)',
-                          }}
-                        >
-                          <defs>
-                            <linearGradient
-                              id="greenGradient"
-                              x1="0"
-                              y1="0"
-                              x2="1"
-                              y2="1"
-                            >
-                              <stop offset="0%" stopColor="#22c55e" />
-                              <stop offset="100%" stopColor="#16a34a" />
-                            </linearGradient>
-                          </defs>
-                        </ArrowDownLeft>
+                        <ArrowDownLeft className="text-green-500" size={20} />
                       ) : (
-                        <ArrowUpRight
-                          size={20}
-                          strokeWidth={2.5}
-                          style={{
-                            stroke: 'url(#redGradient)',
-                          }}
-                        >
-                          <defs>
-                            <linearGradient
-                              id="redGradient"
-                              x1="0"
-                              y1="0"
-                              x2="1"
-                              y2="1"
-                            >
-                              <stop offset="0%" stopColor="#ef4444" />
-                              <stop offset="100%" stopColor="#dc2626" />
-                            </linearGradient>
-                          </defs>
-                        </ArrowUpRight>
+                        <ArrowUpRight className="text-black" size={20} />
                       )}
                     </div>
-
                     <div>
                       <p className="font-medium text-sm md:text-base capitalize">
                         {tx.type === 'withdrawal' ? 'sent' : tx.type}
-                        {tx.status === 'pending' && (
-                          <span className="ml-2 px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs">
-                            Pending
-                          </span>
-                        )}
                       </p>
                       <p className="text-xs md:text-sm text-gray-500">
                         {tx.date.toLocaleDateString()}
-                        {tx.status === 'pending' && tx.pendingUntil && (
-                          <span className="ml-2 text-amber-600">
-                            • {getTimeRemaining(tx.pendingUntil)} remaining
-                          </span>
-                        )}
                       </p>
                     </div>
                   </div>
-
                   <div className="text-right">
-                    <p
-                      className={`font-semibold text-sm md:text-base ${
-                        tx.type === 'deposit' || tx.type === 'received'
-                          ? 'text-gradient-blue-purple'
-                          : 'text-gradient-blue-indigo'
-                      }`}
-                    >
+                    <p className={`font-semibold text-sm md:text-base ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-black'}`}>
                       {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
                       {tx.amount} {localCrypto.symbol.toUpperCase()}
                     </p>
-
                     <p className="text-xs text-gray-500">
                       ${getUsdValue(tx.amount).toFixed(2)}
                     </p>
-
-                    <p
-                      className={`text-xs ${
-                        tx.status === 'completed' 
-                          ? 'text-green-500' 
-                          : tx.status === 'pending'
-                          ? 'text-amber-500'
-                          : 'text-orange-500'
-                      }`}
-                    >
+                    <p className={`text-xs ${tx.status === "completed" ? "text-green-500" : "text-orange-500"}`}>
                       {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                     </p>
                   </div>
@@ -1872,9 +1557,9 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         ) : (
           <div className="text-center py-10 text-gray-500">
             <p>No transactions found for this wallet</p>
-            <button
+            <button 
               onClick={() => setShowTransferModal(true)}
-              className="mt-4 text-gradient-blue-purple font-medium hover:underline"
+              className="mt-4 text-crypto-blue font-medium hover:underline"
             >
               Make your first transaction
             </button>

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   Mail, Lock, User, Eye, EyeOff, CheckCircle, 
   Loader2, Check, Server, Sparkles, Shield,
-  Cpu, Zap, Coins
+  Cpu, Zap, Coins, Globe
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -193,6 +193,41 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Enhanced email validation that accepts various domain extensions
+  const isValidEmail = (email: string): boolean => {
+    // More permissive email regex that allows various TLDs and custom domains
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+(\.[^\s@]+)*$/;
+    
+    // Basic length and format check
+    if (email.length < 3 || !email.includes('@') || !email.includes('.')) {
+      return false;
+    }
+    
+    // Check for common email providers and custom domains
+    const commonDomains = [
+      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+      'protonmail.com', 'icloud.com', 'mail.com', 'zoho.com', 'yandex.com'
+    ];
+    
+    const domain = email.split('@')[1]?.toLowerCase();
+    
+    // Allow common email providers
+    if (commonDomains.includes(domain)) {
+      return emailRegex.test(email);
+    }
+    
+    // Allow custom domains with various TLDs
+    // This includes .com, .io, .ai, .org, .net, .co, .app, .dev, and many others
+    const tldRegex = /\.(com|io|ai|org|net|co|app|dev|tech|finance|crypto|blockchain|wallet|exchange|market|trade|bitcoin|eth|xyz|info|biz|me|tv|cc|gg|so|to|nu|ws|eu|uk|de|fr|jp|cn|in|br|au|ca|mx|ru)$/i;
+    
+    if (domain && tldRegex.test(domain)) {
+      return emailRegex.test(email);
+    }
+    
+    // For other domains, use basic email validation
+    return emailRegex.test(email);
+  };
+
   const getPasswordStrength = (
     password: string
   ): { strength: number; label: string; color: string } => {
@@ -289,6 +324,16 @@ const Signup = () => {
       return;
     }
 
+    // Use the enhanced email validation
+    if (!isValidEmail(email)) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address with proper domain extension',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (passwordStrength.strength < 3) {
       toast({
         title: 'Weak Password',
@@ -309,6 +354,7 @@ const Signup = () => {
         email: email,
         createdAt: serverTimestamp(),
         hasSeenWalletCreation: false,
+        emailDomain: email.split('@')[1], // Store the domain for analytics
       });
 
       await setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), {
@@ -336,6 +382,8 @@ const Signup = () => {
         errorMessage = 'Email is already in use';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'Password should be at least 6 characters';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'The email address is not valid. Please check the domain extension.';
       }
 
       toast({
@@ -359,7 +407,10 @@ const Signup = () => {
 
   return (
     <>
-      <AuthLayout title="Create an account" subtitle="Sign up to get started with PayCoin">
+      <AuthLayout 
+        title="Create an account" 
+        subtitle="Sign up with your email address or custom domain"
+      >
         <Card>
           <form onSubmit={handleSignup}>
             <CardContent className="pt-6">
@@ -380,18 +431,22 @@ const Signup = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email Address</Label>
                   <div className="flex items-center border rounded px-3 py-2">
                     <Mail className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input
                       id="email"
-                      type="email"
-                      placeholder="you@example.com"
+                      type="text"
+                      placeholder="you@example.com or user@blockchain.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="flex-1 border-0 outline-none"
                     />
                   </div>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center">
+                    <Globe className="h-3 w-3 mr-1" />
+                    Supports custom domains like blockchain.com, coinbase.com, user.com, etc.
+                  </p>
                 </div>
 
                 <div>
