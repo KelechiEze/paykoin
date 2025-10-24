@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface PasswordRequirementProps {
   text: string;
@@ -25,18 +25,6 @@ interface WalletCreationModalProps {
   currentStep: number;
   progress: number;
   onComplete: () => void;
-}
-
-// Interface for IP data
-interface IPData {
-  ip: string;
-  country: string;
-  region: string;
-  city: string;
-  timezone: string;
-  isp: string;
-  latitude: number;
-  longitude: number;
 }
 
 const WalletCreationModal: React.FC<WalletCreationModalProps> = ({ 
@@ -187,15 +175,6 @@ const WalletCreationModal: React.FC<WalletCreationModalProps> = ({
               </div>
             </div>
           )}
-
-          {(currentStep === 1 || currentStep === 4) && (
-            <Button 
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all"
-              onClick={onComplete}
-            >
-              Continue to Dashboard
-            </Button>
-          )}
         </div>
       </div>
     </div>
@@ -214,63 +193,38 @@ const Signup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to get user's IP and location data
-  const getUserIPData = async (): Promise<IPData | null> => {
-    try {
-      // First try ipapi.co (free tier available)
-      const response = await fetch('https://ipapi.co/json/');
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          ip: data.ip,
-          country: data.country_name,
-          region: data.region,
-          city: data.city,
-          timezone: data.timezone,
-          isp: data.org,
-          latitude: data.latitude,
-          longitude: data.longitude
-        };
-      }
-    } catch (error) {
-      console.log('ipapi.co failed, trying backup service...');
-    }
-
-    try {
-      // Backup service: ipify + ipapi (free)
-      const ipResponse = await fetch('https://api.ipify.org?format=json');
-      const ipData = await ipResponse.json();
-      const ip = ipData.ip;
-
-      const locationResponse = await fetch(`https://ipapi.co/${ip}/json/`);
-      if (locationResponse.ok) {
-        const locationData = await locationResponse.json();
-        return {
-          ip: ip,
-          country: locationData.country_name,
-          region: locationData.region,
-          city: locationData.city,
-          timezone: locationData.timezone,
-          isp: locationData.org,
-          latitude: locationData.latitude,
-          longitude: locationData.longitude
-        };
-      }
-    } catch (error) {
-      console.log('Backup IP service failed');
-    }
-
-    return null;
-  };
-
   // Enhanced email validation that accepts various domain extensions
   const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // More permissive email regex that allows various TLDs and custom domains
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+(\.[^\s@]+)*$/;
     
+    // Basic length and format check
     if (email.length < 3 || !email.includes('@') || !email.includes('.')) {
       return false;
     }
     
+    // Check for common email providers and custom domains
+    const commonDomains = [
+      'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
+      'protonmail.com', 'icloud.com', 'mail.com', 'zoho.com', 'yandex.com'
+    ];
+    
+    const domain = email.split('@')[1]?.toLowerCase();
+    
+    // Allow common email providers
+    if (commonDomains.includes(domain)) {
+      return emailRegex.test(email);
+    }
+    
+    // Allow custom domains with various TLDs
+    // This includes .com, .io, .ai, .org, .net, .co, .app, .dev, and many others
+    const tldRegex = /\.(com|io|ai|org|net|co|app|dev|tech|finance|crypto|blockchain|wallet|exchange|market|trade|bitcoin|eth|xyz|info|biz|me|tv|cc|gg|so|to|nu|ws|eu|uk|de|fr|jp|cn|in|br|au|ca|mx|ru)$/i;
+    
+    if (domain && tldRegex.test(domain)) {
+      return emailRegex.test(email);
+    }
+    
+    // For other domains, use basic email validation
     return emailRegex.test(email);
   };
 
@@ -286,12 +240,12 @@ const Signup = () => {
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
     const labels = ['Weak', 'Fair', 'Good', 'Strong'];
-    const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
+    const colors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-green-400'];
 
     return {
       strength,
       label: labels[strength - 1] || 'Weak',
-      color: colors[strength - 1] || 'bg-red-500',
+      color: colors[strength - 1] || 'bg-red-400',
     };
   };
 
@@ -302,10 +256,9 @@ const Signup = () => {
     setModalStep(0);
     setProgress(0);
 
-    // First step: Creating wallets
-    const walletCreationTime = 3000;
-    const intervalTime = 50;
-    const increments = walletCreationTime / intervalTime;
+    const totalTime = 5000;
+    const intervalTime = 100;
+    const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
 
     let currentProgress = 0;
@@ -317,7 +270,6 @@ const Signup = () => {
         clearInterval(progressInterval);
         setModalStep(1);
 
-        // Auto-advance to AI connection step after 2 seconds
         setTimeout(() => {
           setModalStep(2);
         }, 2000);
@@ -329,9 +281,9 @@ const Signup = () => {
     setModalStep(3);
     setProgress(0);
 
-    const aiConnectionTime = 3000;
-    const intervalTime = 50;
-    const increments = aiConnectionTime / intervalTime;
+    const totalTime = 4000;
+    const intervalTime = 100;
+    const increments = totalTime / intervalTime;
     const progressIncrement = 100 / increments;
 
     let currentProgress = 0;
@@ -343,7 +295,6 @@ const Signup = () => {
         clearInterval(progressInterval);
         setModalStep(4);
 
-        // Auto-redirect to dashboard after 2 seconds
         setTimeout(() => {
           setShowWalletModal(false);
           navigate('/dashboard');
@@ -354,10 +305,8 @@ const Signup = () => {
 
   const handleModalComplete = () => {
     if (modalStep === 2) {
-      // User chose to connect AI assistant
       handleAIConnectionProcess();
-    } else if (modalStep === 1 || modalStep === 4) {
-      // Skip AI or completion - go to dashboard
+    } else {
       setShowWalletModal(false);
       navigate('/dashboard');
     }
@@ -366,7 +315,7 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name || !email || !password) {
       toast({
         title: 'Error',
         description: 'Please fill in all fields',
@@ -375,28 +324,20 @@ const Signup = () => {
       return;
     }
 
+    // Use the enhanced email validation
     if (!isValidEmail(email)) {
       toast({
         title: 'Invalid Email',
-        description: 'Please enter a valid email address',
+        description: 'Please enter a valid email address with proper domain extension',
         variant: 'destructive',
       });
       return;
     }
 
-    if (password.length < 6) {
+    if (passwordStrength.strength < 3) {
       toast({
         title: 'Weak Password',
-        description: 'Password should be at least 6 characters',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (passwordStrength.strength < 2) {
-      toast({
-        title: 'Weak Password',
-        description: 'Please choose a stronger password with uppercase letters and numbers',
+        description: 'Please choose a stronger password',
         variant: 'destructive',
       });
       return;
@@ -405,114 +346,50 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      // Get user's IP and location data (don't await - run in background)
-      const ipDataPromise = getUserIPData();
-
-      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Wait for IP data (with timeout)
-      let ipData = null;
-      try {
-        ipData = await Promise.race([
-          ipDataPromise,
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
-        ]);
-      } catch (ipError) {
-        console.log('IP data fetch failed or timed out');
-      }
-
-      // Prepare user data
-      const userData = {
-        fullName: name.trim(),
-        email: email.toLowerCase().trim(),
+      await setDoc(doc(db, 'users', user.uid), {
+        fullName: name,
+        email: email,
         createdAt: serverTimestamp(),
-        hasSeenWalletCreation: true, // Set to true since we're showing the modal
-        emailDomain: email.split('@')[1],
-        signupLocation: ipData ? {
-          country: ipData.country,
-          region: ipData.region,
-          city: ipData.city
-        } : null,
-        ipData: ipData ? {
-          ...ipData,
-          signupTimestamp: serverTimestamp(),
-          userAgent: navigator.userAgent
-        } : null,
-        lastLogin: serverTimestamp(),
-        accountStatus: 'active'
-      };
+        hasSeenWalletCreation: false,
+        emailDomain: email.split('@')[1], // Store the domain for analytics
+      });
 
-      // Create user document
-      await setDoc(doc(db, 'users', user.uid), userData);
-
-      // Create dashboard stats
       await setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), {
         totalBalance: 0,
         portfolioGrowth: 0,
         activeWallets: 0,
-        totalTransactions: 0,
-        lastUpdated: serverTimestamp()
+        topPerformer: null,
       });
 
-      // Create wallets collection
-      await setDoc(doc(db, 'users', user.uid, 'wallets', 'main'), {
-        walletType: 'main',
-        balance: 0,
-        currency: 'USD',
-        createdAt: serverTimestamp(),
-        isActive: true
-      });
+      await setDoc(doc(db, 'users', user.uid), {
+        hasSeenWalletCreation: true,
+      }, { merge: true });
 
-      // Log signup analytics
-      try {
-        await setDoc(doc(db, 'analytics', 'signups'), {
-          totalSignups: serverTimestamp(),
-          recentSignup: {
-            userId: user.uid,
-            email: email,
-            location: ipData ? `${ipData.city}, ${ipData.country}` : 'unknown',
-            timestamp: serverTimestamp()
-          }
-        }, { merge: true });
-      } catch (analyticsError) {
-        console.log('Analytics logging failed, continuing...');
-      }
-
-      // Show success message
       toast({
-        title: 'Account Created Successfully!',
-        description: ipData 
-          ? `Welcome ${name}! Your account has been created from ${ipData.city}, ${ipData.country}.` 
-          : `Welcome ${name}! Your account has been successfully created.`,
+        title: 'Account Created',
+        description: 'Your account has been successfully created! You can now add a wallet.',
       });
 
-      // Start the wallet creation modal process
       handleWalletCreationProcess();
 
     } catch (error: any) {
-      console.error('Signup error:', error);
-      
-      let errorMessage = 'An unexpected error occurred during signup. Please try again.';
+      let errorMessage = 'An error occurred during signup';
 
       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email address is already registered. Please use a different email or try logging in.';
+        errorMessage = 'Email is already in use';
       } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password should be at least 6 characters long.';
+        errorMessage = 'Password should be at least 6 characters';
       } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'The email address is not valid. Please check and try again.';
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = 'Network error. Please check your internet connection and try again.';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many attempts. Please try again later.';
+        errorMessage = 'The email address is not valid. Please check the domain extension.';
       }
 
       toast({
         title: 'Signup Failed',
         description: errorMessage,
         variant: 'destructive',
-        duration: 5000,
       });
     } finally {
       setIsLoading(false);
@@ -540,7 +417,7 @@ const Signup = () => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="name">Full Name</Label>
-                  <div className="flex items-center border rounded-md px-3 py-2 shadow-sm">
+                  <div className="flex items-center border rounded px-3 py-2">
                     <User className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input
                       id="name"
@@ -548,35 +425,33 @@ const Signup = () => {
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="flex-1 border-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      disabled={isLoading}
+                      className="flex-1 border-0 outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
                   <Label htmlFor="email">Email Address</Label>
-                  <div className="flex items-center border rounded-md px-3 py-2 shadow-sm">
+                  <div className="flex items-center border rounded px-3 py-2">
                     <Mail className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input
                       id="email"
-                      type="email"
-                      placeholder="you@example.com"
+                      type="text"
+                      placeholder="you@example.com or user@blockchain.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="flex-1 border-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      disabled={isLoading}
+                      className="flex-1 border-0 outline-none"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1 flex items-center">
                     <Globe className="h-3 w-3 mr-1" />
-                    Supports all email providers and custom domains
+                    Supports custom domains like blockchain.com, coinbase.com, user.com, etc.
                   </p>
                 </div>
 
                 <div>
                   <Label htmlFor="password">Password</Label>
-                  <div className="flex items-center border rounded-md px-3 py-2 shadow-sm">
+                  <div className="flex items-center border rounded px-3 py-2">
                     <Lock className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input
                       id="password"
@@ -584,48 +459,28 @@ const Signup = () => {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="flex-1 border-0 outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      disabled={isLoading}
+                      className="flex-1 border-0 outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="ml-2 text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50"
-                      disabled={isLoading}
+                      className="ml-2 text-gray-500 focus:outline-none"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
 
-                  {/* Password strength indicator */}
-                  {password && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span>Password strength:</span>
-                        <span className={`font-medium ${
-                          passwordStrength.strength === 0 ? 'text-red-500' :
-                          passwordStrength.strength === 1 ? 'text-orange-500' :
-                          passwordStrength.strength === 2 ? 'text-yellow-500' :
-                          'text-green-500'
-                        }`}>
-                          {passwordStrength.label}
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full w-full bg-gray-200">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            passwordStrength.strength === 0 ? 'bg-red-500 w-1/4' :
-                            passwordStrength.strength === 1 ? 'bg-orange-500 w-1/2' :
-                            passwordStrength.strength === 2 ? 'bg-yellow-500 w-3/4' :
-                            'bg-green-500 w-full'
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  {/* Password strength bar */}
+                  <div className="mt-2 h-2 rounded-full w-full bg-gray-200">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.strength / 4) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs mt-1 text-gray-600">Strength: {passwordStrength.label}</p>
 
                   {/* Password requirements */}
-                  <ul className="mt-3 space-y-1">
+                  <ul className="mt-2 space-y-1">
                     <PasswordRequirement text="At least 8 characters" satisfied={password.length >= 8} />
                     <PasswordRequirement text="Contains uppercase letter" satisfied={/[A-Z]/.test(password)} />
                     <PasswordRequirement text="Contains number" satisfied={/[0-9]/.test(password)} />
@@ -638,14 +493,12 @@ const Signup = () => {
             <CardFooter className="flex flex-col space-y-4">
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md"
                 disabled={isLoading}
-                size="lg"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> 
-                    Creating your account...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account...
                   </>
                 ) : (
                   'Create Account'
@@ -654,11 +507,7 @@ const Signup = () => {
 
               <p className="text-sm text-center text-gray-600">
                 Already have an account?{' '}
-                <Link 
-                  to="/login" 
-                  className="text-blue-600 hover:underline font-medium"
-                  onClick={(e) => isLoading && e.preventDefault()}
-                >
+                <Link to="/login" className="text-blue-600 hover:underline">
                   Sign in
                 </Link>
               </p>
