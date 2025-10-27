@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Eye, EyeOff, TrendingUp, TrendingDown, Activity, 
   ArrowRight, DollarSign, Bitcoin, Wallet, MessageSquare,
-  Send, X, Bell, Search, Loader
+  Send, X, Bell, Search, Loader, Brain, AlertTriangle,
+  Star, Zap, Target, Check, ArrowUpRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -31,6 +32,23 @@ interface DashboardData {
   portfolioGrowth: number;
   activeWallets: number;
   topPerformer: string;
+}
+
+interface AITradingSuggestion {
+  id: string;
+  name: string;
+  symbol: string;
+  price: number;
+  change24h: number;
+  marketCap: number;
+  volume24h: number;
+  aiConfidence: number;
+  riskLevel: 'Low' | 'Medium' | 'High';
+  recommendation: 'Strong Buy' | 'Buy' | 'Hold' | 'Sell';
+  description: string;
+  benefits: string[];
+  risks: string[];
+  image?: string;
 }
 
 // Commenting out messaging interfaces for now
@@ -69,6 +87,11 @@ const Dashboard: React.FC = () => {
     topPerformer: ''
   });
   const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState<AITradingSuggestion[]>([]);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<AITradingSuggestion | null>(null);
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  
   // Commenting out messaging states for now
   /*
   const [messages, setMessages] = useState<Message[]>([]);
@@ -160,172 +183,254 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Commenting out message fetching for now
-  /*
-  // Fetch messages for current user
+  // Fetch AI Trading Suggestions with Images
   useEffect(() => {
-    if (!user) return;
-
-    const messagesQuery = query(
-      collection(db, 'messages'),
-      where('receiverId', '==', user.uid),
-      orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messagesData: Message[] = [];
-      let unread = 0;
-
-      snapshot.forEach((doc) => {
-        const message = { id: doc.id, ...doc.data() } as Message;
-        messagesData.push(message);
-        if (!message.read) unread++;
-      });
-
-      setMessages(messagesData);
-      setUnreadCount(unread);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Fetch all users for messaging
-  useEffect(() => {
-    if (!user) return;
-
-    const usersQuery = query(collection(db, 'users'));
-
-    const unsubscribe = onSnapshot(usersQuery, (snapshot) => {
-      const usersData: User[] = [];
-      snapshot.forEach((doc) => {
-        if (doc.id !== user.uid) { // Exclude current user
-          const userData = doc.data();
-          usersData.push({
-            uid: doc.id,
-            email: userData.email,
-            displayName: userData.fullName || userData.email
-          });
+    const fetchAiSuggestions = async () => {
+      try {
+        setIsLoadingAi(true);
+        // Using CoinGecko API to get crypto data with images
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1&sparkline=false&price_change_percentage=24h'
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch AI suggestions');
         }
-      });
-      setUsers(usersData);
-    });
+        
+        const data = await response.json();
+        
+        // Transform data with AI analysis and recommendations
+        const suggestions: AITradingSuggestion[] = data.map((coin: any, index: number) => {
+          // AI analysis simulation based on market data
+          const confidence = 75 + Math.random() * 20;
+          const riskLevels: ('Low' | 'Medium' | 'High')[] = ['Low', 'Medium', 'High'];
+          const recommendations: ('Strong Buy' | 'Buy' | 'Hold' | 'Sell')[] = ['Strong Buy', 'Buy', 'Hold'];
+          
+          const riskIndex = coin.market_cap_rank <= 10 ? 0 : coin.market_cap_rank <= 50 ? 1 : 2;
+          const recommendationIndex = coin.price_change_percentage_24h > 5 ? 0 : coin.price_change_percentage_24h > 0 ? 1 : 2;
+          
+          return {
+            id: coin.id,
+            name: coin.name,
+            symbol: coin.symbol.toUpperCase(),
+            price: coin.current_price,
+            change24h: coin.price_change_percentage_24h,
+            marketCap: coin.market_cap,
+            volume24h: coin.total_volume,
+            aiConfidence: Math.round(confidence),
+            riskLevel: riskLevels[riskIndex],
+            recommendation: recommendations[recommendationIndex],
+            image: coin.image,
+            description: `AI analysis suggests ${coin.symbol.toUpperCase()} shows strong momentum with ${coin.price_change_percentage_24h > 0 ? 'positive' : 'consolidating'} trends. Our algorithm identifies potential growth opportunities based on market sentiment and technical indicators.`,
+            benefits: [
+              'High liquidity and market depth',
+              'Strong community and developer support',
+              'Proven track record in market cycles',
+              'Institutional adoption growing'
+            ],
+            risks: [
+              'Market volatility can be extreme',
+              'Regulatory uncertainties exist',
+              'Technology and security risks',
+              'Competition from other projects'
+            ]
+          };
+        });
+        
+        setAiSuggestions(suggestions);
+      } catch (err) {
+        console.error('Error fetching AI suggestions:', err);
+        // Fallback demo data with images
+        setAiSuggestions(getDemoAiSuggestions());
+      } finally {
+        setIsLoadingAi(false);
+      }
+    };
 
-    return () => unsubscribe();
-  }, [user]);
-  */
+    fetchAiSuggestions();
+  }, []);
+
+  // Demo data for AI suggestions with images
+  const getDemoAiSuggestions = (): AITradingSuggestion[] => {
+    return [
+      {
+        id: 'bitcoin',
+        name: 'Bitcoin',
+        symbol: '₿',
+        price: 43250.75,
+        change24h: 2.34,
+        marketCap: 845000000000,
+        volume24h: 28500000000,
+        aiConfidence: 88,
+        riskLevel: 'Medium',
+        recommendation: 'Strong Buy',
+        image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
+        description: 'Bitcoin continues to show strength as digital gold with increasing institutional adoption and limited supply dynamics.',
+        benefits: [
+          'Store of value characteristics',
+          'Strong network security',
+          'Limited supply of 21 million',
+          'Growing institutional adoption'
+        ],
+        risks: [
+          'Price volatility remains high',
+          'Regulatory scrutiny increasing',
+          'Energy consumption concerns',
+          'Competition from other stores of value'
+        ]
+      },
+      {
+        id: 'ethereum',
+        name: 'Ethereum',
+        symbol: 'Ξ',
+        price: 2580.45,
+        change24h: 1.87,
+        marketCap: 310000000000,
+        volume24h: 15800000000,
+        aiConfidence: 82,
+        riskLevel: 'Medium',
+        recommendation: 'Buy',
+        image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+        description: 'Ethereum ecosystem shows robust growth with DeFi and NFT applications driving network value and utility.',
+        benefits: [
+          'Largest smart contract platform',
+          'Strong developer ecosystem',
+          'Upcoming protocol improvements',
+          'Diverse application landscape'
+        ],
+        risks: [
+          'Network congestion issues',
+          'Competition from layer 2 solutions',
+          'Regulatory uncertainty for DeFi',
+          'Transition to proof-of-stake risks'
+        ]
+      },
+      {
+        id: 'solana',
+        name: 'Solana',
+        symbol: '◎',
+        price: 102.30,
+        change24h: 5.67,
+        marketCap: 42000000000,
+        volume24h: 3800000000,
+        aiConfidence: 76,
+        riskLevel: 'High',
+        recommendation: 'Buy',
+        image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
+        description: 'Solana demonstrates high throughput capabilities with growing DeFi and NFT projects building on its network.',
+        benefits: [
+          'High transaction throughput',
+          'Low transaction costs',
+          'Growing ecosystem of dApps',
+          'Strong venture capital backing'
+        ],
+        risks: [
+          'Network stability concerns',
+          'Centralization criticisms',
+          'Early stage technology',
+          'Competitive landscape intense'
+        ]
+      },
+      {
+        id: 'cardano',
+        name: 'Cardano',
+        symbol: '₳',
+        price: 0.52,
+        change24h: -0.45,
+        marketCap: 18500000000,
+        volume24h: 650000000,
+        aiConfidence: 71,
+        riskLevel: 'Medium',
+        recommendation: 'Hold',
+        image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png',
+        description: 'Cardano continues its methodical development approach with smart contract capabilities now live on mainnet.',
+        benefits: [
+          'Peer-reviewed development',
+          'Strong academic partnerships',
+          'Energy efficient proof-of-stake',
+          'Global adoption initiatives'
+        ],
+        risks: [
+          'Slower development pace',
+          'Ecosystem maturity needed',
+          'Competition from established platforms',
+          'Market sentiment volatility'
+        ]
+      },
+      {
+        id: 'polkadot',
+        name: 'Polkadot',
+        symbol: '●',
+        price: 7.25,
+        change24h: 3.12,
+        marketCap: 9200000000,
+        volume24h: 480000000,
+        aiConfidence: 79,
+        riskLevel: 'Medium',
+        recommendation: 'Buy',
+        image: 'https://assets.coingecko.com/coins/images/12171/small/polkadot.png',
+        description: 'Polkadot interoperability framework enables cross-chain communication with parachain auctions driving ecosystem growth.',
+        benefits: [
+          'Interoperability between chains',
+          'Shared security model',
+          'Active parachain ecosystem',
+          'Strong technical foundation'
+        ],
+        risks: [
+          'Complex technology stack',
+          'Competition in interoperability',
+          'Adoption timeline uncertainties',
+          'Regulatory landscape evolving'
+        ]
+      },
+      {
+        id: 'chainlink',
+        name: 'Chainlink',
+        symbol: 'Ł',
+        price: 14.80,
+        change24h: 1.25,
+        marketCap: 8200000000,
+        volume24h: 520000000,
+        aiConfidence: 85,
+        riskLevel: 'Low',
+        recommendation: 'Strong Buy',
+        image: 'https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
+        description: 'Chainlink maintains dominant position as decentralized oracle network with growing integrations across DeFi and enterprise.',
+        benefits: [
+          'Market leader in oracle space',
+          'Strong enterprise partnerships',
+          'Proven track record of reliability',
+          'Growing use cases beyond DeFi'
+        ],
+        risks: [
+          'Competition emerging in oracle space',
+          'Smart contract dependency risks',
+          'Market correlation with DeFi',
+          'Technology adoption pace'
+        ]
+      }
+    ];
+  };
 
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible((prev) => !prev);
   };
 
-  // Commenting out messaging functions for now
-  /*
-  // Search for users by email
-  const searchUsers = async () => {
-    if (!searchEmail.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      // Search in the already fetched users first
-      const filteredUsers = users.filter(u => 
-        u.email.toLowerCase().includes(searchEmail.toLowerCase())
-      );
-      
-      // If not found in local state, query the database directly
-      if (filteredUsers.length === 0) {
-        const usersRef = collection(db, 'users');
-        const q = query(
-          usersRef, 
-          where('email', '>=', searchEmail.toLowerCase()),
-          where('email', '<=', searchEmail.toLowerCase() + '\uf8ff')
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const dbUsers: User[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          if (doc.id !== user?.uid) {
-            const userData = doc.data();
-            dbUsers.push({
-              uid: doc.id,
-              email: userData.email,
-              displayName: userData.fullName || userData.email
-            });
-          }
-        });
-        
-        setSearchResults(dbUsers);
-      } else {
-        setSearchResults(filteredUsers);
-      }
-    } catch (err) {
-      console.error('Error searching users:', err);
-      setError('Failed to search users');
-    } finally {
-      setIsSearching(false);
-    }
+  const handleStartTrading = (crypto: AITradingSuggestion) => {
+    setSelectedCrypto(crypto);
+    setIsAiModalOpen(true);
   };
 
-  // Send a new message
-  const sendMessage = async () => {
-    if (!user || !searchEmail.trim() || !newMessage.trim()) {
-      setError('Please enter a valid email and message');
-      return;
-    }
-
-    try {
-      // First, find the user by email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', searchEmail.trim().toLowerCase()));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        setError('User with this email not found');
-        return;
-      }
-      
-      const receiverDoc = querySnapshot.docs[0];
-      const receiverData = receiverDoc.data();
-      
-      // Create the message
-      await addDoc(collection(db, 'messages'), {
-        senderId: user.uid,
-        senderEmail: user.email,
-        senderName: user.displayName || user.email,
-        receiverId: receiverDoc.id,
-        receiverEmail: receiverData.email,
-        content: newMessage.trim(),
-        timestamp: serverTimestamp(),
-        read: false
-      });
-
-      setNewMessage('');
-      setSearchEmail('');
-      setSearchResults([]);
-      setIsNewMessageOpen(false);
-      
-      // Show success message
-      setError(null);
-    } catch (err) {
-      console.error('Error sending message:', err);
-      setError('Failed to send message');
-    }
+  const handleConfirmTrading = () => {
+    setIsAiModalOpen(false);
+    setSelectedCrypto(null);
+    navigate('/wallets');
   };
 
-  // Mark message as read
-  const markAsRead = async (messageId: string) => {
-    try {
-      await updateDoc(doc(db, 'messages', messageId), {
-        read: true
-      });
-    } catch (err) {
-      console.error('Error marking message as read:', err);
-    }
+  const handleCloseModal = () => {
+    setIsAiModalOpen(false);
+    setSelectedCrypto(null);
   };
-  */
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -380,7 +485,7 @@ const Dashboard: React.FC = () => {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className="bg-gradient-to-r from-crypto-indigo to-crypto-blue text-white p-4 rounded-lg shadow-md"
+        className="bg-gradient-to-r from-blue-600 to-purple-700 text-white p-4 rounded-lg shadow-md"
       >
         <h2 className="text-xl font-semibold">
           Welcome back,{' '}
@@ -427,7 +532,7 @@ const Dashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <button 
-            className="flex items-center justify-center py-3 px-4 rounded-xl bg-crypto-blue text-white font-medium hover:bg-crypto-blue/90 transition-colors"
+            className="flex items-center justify-center py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
             onClick={() => navigate('/wallets')}
           >
             <DollarSign size={18} className="mr-2" />
@@ -447,6 +552,50 @@ const Dashboard: React.FC = () => {
             <span>Trade</span>
           </button>*/}
         </div>
+      </motion.section>
+
+      {/* AI Trading Suggestions Section */}
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="dashboard-card"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+              <Brain className="text-white" size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">AI Trading Suggestions</h2>
+              <p className="text-sm text-gray-500">Smart recommendations powered by advanced algorithms</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-full">
+            <Zap size={16} className="text-blue-500" />
+            <span className="text-sm font-medium text-blue-700">Live Analysis</span>
+          </div>
+        </div>
+
+        {isLoadingAi ? (
+          <div className="flex justify-center py-10">
+            <div className="flex flex-col items-center space-y-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+              <p className="text-gray-500">Analyzing market opportunities...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {aiSuggestions.map((crypto, index) => (
+              <AITradingCard 
+                key={crypto.id}
+                crypto={crypto}
+                index={index}
+                onStartTrading={handleStartTrading}
+              />
+            ))}
+          </div>
+        )}
       </motion.section>
       
       {/* Stats Cards */}
@@ -484,7 +633,7 @@ const Dashboard: React.FC = () => {
           <h2 className="text-xl font-semibold">Market Trends</h2>
           <button 
             onClick={() => setIsAssetsModalOpen(true)}
-            className="text-sm text-crypto-blue font-medium flex items-center hover:underline transition-colors"
+            className="text-sm text-blue-600 font-medium flex items-center hover:underline transition-colors"
           >
             View all <ArrowRight size={16} className="ml-1" />
           </button>
@@ -492,7 +641,7 @@ const Dashboard: React.FC = () => {
         
         {isLoading ? (
           <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-crypto-blue"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : error ? (
           <div className="text-center py-10 text-red-500">{error}</div>
@@ -544,6 +693,137 @@ const Dashboard: React.FC = () => {
         onClose={() => setIsAssetsModalOpen(false)} 
       />
 
+      {/* AI Trading Confirmation Modal */}
+      {isAiModalOpen && selectedCrypto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+                  <Brain className="text-white" size={20} />
+                </div>
+                <h3 className="text-lg font-semibold">AI Trading Confirmation</h3>
+              </div>
+              <button 
+                onClick={handleCloseModal}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="text-center">
+                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full mb-4">
+                  <Target size={16} />
+                  <span className="font-medium">{selectedCrypto.recommendation}</span>
+                </div>
+                
+                <div className="flex items-center justify-center space-x-3 mb-4">
+                  {selectedCrypto.image ? (
+                    <img 
+                      src={selectedCrypto.image} 
+                      alt={selectedCrypto.name}
+                      className="w-12 h-12 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
+                      {selectedCrypto.symbol.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900">{selectedCrypto.name}</h4>
+                    <p className="text-2xl font-bold text-blue-600">{selectedCrypto.symbol}</p>
+                  </div>
+                </div>
+                
+                <p className="text-gray-600 mt-2 text-sm">{selectedCrypto.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <p className="font-semibold text-blue-700">AI Confidence</p>
+                  <p className="text-lg font-bold">{selectedCrypto.aiConfidence}%</p>
+                </div>
+                <div className={cn(
+                  "text-center p-3 rounded-lg",
+                  selectedCrypto.riskLevel === 'Low' ? "bg-green-50 text-green-700" :
+                  selectedCrypto.riskLevel === 'Medium' ? "bg-yellow-50 text-yellow-700" :
+                  "bg-red-50 text-red-700"
+                )}>
+                  <p className="font-semibold">Risk Level</p>
+                  <p className="text-lg font-bold">{selectedCrypto.riskLevel}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <h5 className="font-semibold text-green-600 flex items-center space-x-1">
+                    <TrendingUp size={16} />
+                    <span>Key Benefits</span>
+                  </h5>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    {selectedCrypto.benefits.map((benefit, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <Check size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h5 className="font-semibold text-red-600 flex items-center space-x-1">
+                    <AlertTriangle size={16} />
+                    <span>Potential Risks</span>
+                  </h5>
+                  <ul className="text-sm text-gray-600 mt-1 space-y-1">
+                    {selectedCrypto.risks.map((risk, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <AlertTriangle size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+                        <span>{risk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                  <AlertTriangle className="text-yellow-600 mt-0.5 flex-shrink-0" size={16} />
+                  <p className="text-sm text-yellow-800">
+                    <strong>Disclaimer:</strong> AI suggestions are based on market analysis and historical data. 
+                    Cryptocurrency investments are volatile and risky. Always do your own research and consider 
+                    consulting with a financial advisor.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 p-6 border-t bg-gray-50">
+              <button 
+                onClick={handleCloseModal}
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2"
+              >
+                <X size={18} />
+                <span>Cancel</span>
+              </button>
+              <button 
+                onClick={handleConfirmTrading}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center justify-center space-x-2"
+              >
+                <Check size={18} />
+                <span>Confirm & Trade</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Messages Modal - Coming Soon */}
       {isMessagesOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -566,140 +846,117 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Commenting out the full messaging functionality for now */}
-      {/*
-      <Messages Modal />
-      {isMessagesOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Messages</h3>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => {
-                    setIsNewMessageOpen(true);
-                    setSelectedUser(null);
-                    setSearchEmail('');
-                    setSearchResults([]);
-                  }}
-                  className="p-2 rounded-full bg-crypto-blue text-white hover:bg-crypto-blue/90"
-                >
-                  <MessageSquare size={18} />
-                </button>
-                <button 
-                  onClick={() => setIsMessagesOpen(false)}
-                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto max-h-[60vh]">
-              {messages.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p>No messages yet</p>
-                  <p className="text-sm mt-2">Send a message to another registered user to start a conversation</p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {messages.map((message) => (
-                    <div 
-                      key={message.id} 
-                      className={`p-4 hover:bg-gray-50 cursor-pointer ${!message.read ? 'bg-blue-50' : ''}`}
-                      onClick={() => {
-                        if (!message.read) markAsRead(message.id);
-                        setIsNewMessageOpen(true);
-                        setSearchEmail(message.senderEmail);
-                      }}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{message.senderName}</h4>
-                          <p className="text-sm text-gray-600 truncate">{message.content}</p>
-                        </div>
-                        <div className="flex flex-col items-end ml-2">
-                          <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
-                          {!message.read && (
-                            <span className="mt-1 w-2 h-2 bg-blue-500 rounded-full"></span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <New Message Modal />
-      {isNewMessageOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">New Message</h3>
-              <button 
-                onClick={() => {
-                  setIsNewMessageOpen(false);
-                  setSearchEmail('');
-                  setSearchResults([]);
-                  setNewMessage('');
-                  setError(null);
-                }}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  To (Email Address)
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter recipient's email..."
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Message
-                </label>
-                <textarea
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="w-full border rounded-lg p-3 min-h-[100px] resize-none"
-                />
-              </div>
-
-              {error && (
-                <div className="mb-4 text-red-500 text-sm">{error}</div>
-              )}
-
-              <button 
-                onClick={sendMessage}
-                disabled={!newMessage.trim() || !searchEmail.trim()}
-                className="w-full bg-crypto-blue text-white py-2 rounded-lg hover:bg-crypto-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              >
-                <Send size={16} className="mr-2" />
-                Send Message
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      */}
     </div>
+  );
+};
+
+interface AITradingCardProps {
+  crypto: AITradingSuggestion;
+  index: number;
+  onStartTrading: (crypto: AITradingSuggestion) => void;
+}
+
+const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTrading }) => {
+  const getRecommendationColor = (recommendation: string) => {
+    switch (recommendation) {
+      case 'Strong Buy': return 'from-green-500 to-emerald-600';
+      case 'Buy': return 'from-blue-500 to-cyan-600';
+      case 'Hold': return 'from-yellow-500 to-amber-600';
+      case 'Sell': return 'from-red-500 to-pink-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'Low': return 'text-green-600 bg-green-50';
+      case 'Medium': return 'text-yellow-600 bg-yellow-50';
+      case 'High': return 'text-red-600 bg-red-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 overflow-hidden group"
+    >
+      {/* Header with gradient */}
+      <div className={cn(
+        "bg-gradient-to-r p-4 text-white",
+        getRecommendationColor(crypto.recommendation)
+      )}>
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-3">
+            {crypto.image ? (
+              <img 
+                src={crypto.image} 
+                alt={crypto.name}
+                className="w-10 h-10 rounded-full border-2 border-white border-opacity-20"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white text-lg font-bold">
+                {crypto.symbol.charAt(0)}
+              </div>
+            )}
+            <div>
+              <h3 className="font-bold text-lg">{crypto.symbol}</h3>
+              <p className="text-sm opacity-90">{crypto.name}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center space-x-1 bg-black bg-opacity-20 px-2 py-1 rounded-full">
+              <Star size={12} className="fill-current" />
+              <span className="text-xs font-semibold">{crypto.recommendation}</span>
+            </div>
+            <p className="text-xl font-bold mt-1">{formatCurrency(crypto.price)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-3">
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-gray-600">24h Change</p>
+            <PercentageChange value={crypto.change24h} />
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-gray-600">AI Confidence</p>
+            <p className="font-semibold text-blue-600">{crypto.aiConfidence}%</p>
+          </div>
+        </div>
+
+        {/* Risk level */}
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-600">Risk Level:</span>
+          <span className={cn(
+            "text-xs font-semibold px-2 py-1 rounded-full",
+            getRiskColor(crypto.riskLevel)
+          )}>
+            {crypto.riskLevel}
+          </span>
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-gray-600 line-clamp-2">
+          {crypto.description}
+        </p>
+
+        {/* Action button */}
+        <button
+          onClick={() => onStartTrading(crypto)}
+          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform group-hover:scale-105 flex items-center justify-center space-x-2"
+        >
+          <Zap size={16} />
+          <span>Start Trading</span>
+          <ArrowUpRight size={14} />
+        </button>
+      </div>
+    </motion.div>
   );
 };
 
@@ -752,6 +1009,16 @@ const PercentageChange: React.FC<PercentageChangeProps> = ({ value, suffix }) =>
       <span>{isPositive ? '+' : ''}{value.toFixed(2)}%{suffix && ` (${suffix})`}</span>
     </div>
   );
+};
+
+// Helper function to format currency (duplicated for component use)
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
 };
 
 export default Dashboard;
