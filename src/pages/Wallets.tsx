@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Copy, Check, ExternalLink, DollarSign, ArrowDown, Clock, 
-  Hash, ArrowUpRight, ArrowDownLeft, Send 
+  Hash, ArrowUpRight, ArrowDownLeft, Send, Wallet 
 } from 'lucide-react';
 
 const getTransactionTypeIcon = (transaction) => {
@@ -387,11 +387,13 @@ const WithdrawModal = ({
   onWithdrawSuccess: () => void;
 }) => {
   const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientWalletAddress, setRecipientWalletAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [fiatAmount, setFiatAmount] = useState('');
   const [fiatCurrency, setFiatCurrency] = useState('USD');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [error, setError] = useState('');
+  const [transferMethod, setTransferMethod] = useState<'email' | 'wallet'>('email');
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [notificationSettings, setNotificationSettings] = useState<any>(null);
@@ -417,12 +419,29 @@ const WithdrawModal = ({
 
   const exchangeRate = crypto.usdValue / crypto.balance || 1;
 
+  // Check if user has made the required 20% deposit
+  const hasRequiredDeposit = () => {
+    const totalDeposits = crypto.transactions
+      .filter(tx => tx.type === 'deposit' || tx.type === 'received')
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    
+    const requiredDeposit = crypto.balance * 0.20; // 20% of current balance
+    return totalDeposits >= requiredDeposit;
+  };
+
   const handleWithdraw = async () => {
     if (!currentUser) {
       toast({
         variant: "destructive",
         description: "You must be logged in to transfer crypto",
       });
+      return;
+    }
+
+    // Check if user has made required deposit for wallet address transfers
+    if (transferMethod === 'wallet' && !hasRequiredDeposit()) {
+      const requiredDeposit = crypto.balance * 0.20;
+      setError(`You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (20% of your balance) before you can transfer using wallet addresses`);
       return;
     }
 
@@ -437,14 +456,27 @@ const WithdrawModal = ({
       return;
     }
 
-    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    if (transferMethod === 'email') {
+      if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+        setError('Please enter a valid email address');
+        return;
+      }
 
-    if (recipientEmail === currentUser.email) {
-      setError('You cannot send to your own email');
-      return;
+      if (recipientEmail === currentUser.email) {
+        setError('You cannot send to your own email');
+        return;
+      }
+    } else {
+      if (!recipientWalletAddress.trim()) {
+        setError('Please enter a valid wallet address');
+        return;
+      }
+
+      // Basic wallet address validation
+      if (recipientWalletAddress.length < 10) {
+        setError('Please enter a valid wallet address');
+        return;
+      }
     }
 
     const fee = Math.max(0.0001, withdrawAmount * 0.005);
@@ -459,97 +491,110 @@ const WithdrawModal = ({
     setError('');
 
     try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', recipientEmail));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        setError('No user found with this email');
+      if (transferMethod === 'email') {
+        // Existing email transfer logic
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', recipientEmail));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          setError('No user found with this email');
+          setIsWithdrawing(false);
+          return;
+        }
+        
+        const recipientDoc = querySnapshot.docs[0];
+        const recipientId = recipientDoc.id;
+        const recipientData = recipientDoc.data();
+        
+        const walletsRef = collection(db, 'users', recipientId, 'wallets');
+        const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
+        const walletSnapshot = await getDocs(walletQuery);
+        
+        if (walletSnapshot.empty) {
+          setError('Recipient does not have a wallet for this cryptocurrency');
+          setIsWithdrawing(false);
+          return;
+        }
+        
+        const recipientWallet = walletSnapshot.docs[0];
+        const recipientWalletData = recipientWallet.data();
+        
+        const batch = writeBatch(db);
+        
+        const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
+        const senderNewBalance = crypto.balance - totalDeduction;
+        
+        batch.update(senderWalletRef, {
+          cryptoBalance: senderNewBalance
+        });
+        
+        const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
+        batch.set(senderTxRef, {
+          type: 'sent',
+          amount: withdrawAmount,
+          fee: fee,
+          total: totalDeduction,
+          date: serverTimestamp(),
+          status: 'completed',
+          to: recipientEmail,
+          note: `Sent to ${recipientEmail}`,
+          symbol: crypto.symbol,
+          fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
+          fiatCurrency: fiatCurrency
+        });
+        
+        const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
+        const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
+        
+        batch.update(recipientWalletRef, {
+          cryptoBalance: recipientNewBalance
+        });
+        
+        const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
+        batch.set(recipientTxRef, {
+          type: 'received',
+          amount: withdrawAmount,
+          date: serverTimestamp(),
+          status: 'completed',
+          from: currentUser.email,
+          note: `Received from ${currentUser.email}`,
+          symbol: crypto.symbol,
+          fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
+          fiatCurrency: fiatCurrency
+        });
+        
+        await batch.commit();
+
+        if (notificationSettings) {
+          triggerNotifications(notificationSettings, {
+            type: 'transaction',
+            title: 'Transaction Completed',
+            message: `Sent ${withdrawAmount} ${crypto.symbol} to ${recipientEmail}`
+          }, toast);
+
+          triggerNotifications(notificationSettings, {
+            type: 'security',
+            title: 'Security Alert',
+            message: `Transfer of ${withdrawAmount} ${crypto.symbol} initiated from your account`
+          }, toast);
+        }
+
+        toast({
+          title: 'Transfer successful!',
+          description: `${withdrawAmount} ${crypto.symbol} sent to ${recipientEmail}`,
+        });
+      } else {
+        // Wallet address transfer - show deposit requirement message
+        const requiredDeposit = crypto.balance * 0.20;
+        toast({
+          variant: "destructive",
+          title: 'Deposit Required',
+          description: `You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (20% of your balance) before you can transfer using wallet addresses`,
+        });
         setIsWithdrawing(false);
         return;
       }
-      
-      const recipientDoc = querySnapshot.docs[0];
-      const recipientId = recipientDoc.id;
-      const recipientData = recipientDoc.data();
-      
-      const walletsRef = collection(db, 'users', recipientId, 'wallets');
-      const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
-      const walletSnapshot = await getDocs(walletQuery);
-      
-      if (walletSnapshot.empty) {
-        setError('Recipient does not have a wallet for this cryptocurrency');
-        setIsWithdrawing(false);
-        return;
-      }
-      
-      const recipientWallet = walletSnapshot.docs[0];
-      const recipientWalletData = recipientWallet.data();
-      
-      const batch = writeBatch(db);
-      
-      const senderWalletRef = doc(db, 'users', currentUser.uid, 'wallets', crypto.id);
-      const senderNewBalance = crypto.balance - totalDeduction;
-      
-      batch.update(senderWalletRef, {
-        cryptoBalance: senderNewBalance
-      });
-      
-      const senderTxRef = doc(collection(senderWalletRef, 'transactions'));
-      batch.set(senderTxRef, {
-        type: 'sent',
-        amount: withdrawAmount,
-        fee: fee,
-        total: totalDeduction,
-        date: serverTimestamp(),
-        status: 'completed',
-        to: recipientEmail,
-        note: `Sent to ${recipientEmail}`,
-        symbol: crypto.symbol,
-        fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
-        fiatCurrency: fiatCurrency
-      });
-      
-      const recipientWalletRef = doc(db, 'users', recipientId, 'wallets', recipientWallet.id);
-      const recipientNewBalance = (recipientWalletData.cryptoBalance || 0) + withdrawAmount;
-      
-      batch.update(recipientWalletRef, {
-        cryptoBalance: recipientNewBalance
-      });
-      
-      const recipientTxRef = doc(collection(recipientWalletRef, 'transactions'));
-      batch.set(recipientTxRef, {
-        type: 'received',
-        amount: withdrawAmount,
-        date: serverTimestamp(),
-        status: 'completed',
-        from: currentUser.email,
-        note: `Received from ${currentUser.email}`,
-        symbol: crypto.symbol,
-        fiatAmount: fiatAmount ? parseFloat(fiatAmount) : null,
-        fiatCurrency: fiatCurrency
-      });
-      
-      await batch.commit();
-
-      if (notificationSettings) {
-        triggerNotifications(notificationSettings, {
-          type: 'transaction',
-          title: 'Transaction Completed',
-          message: `Sent ${withdrawAmount} ${crypto.symbol} to ${recipientEmail}`
-        }, toast);
-
-        triggerNotifications(notificationSettings, {
-          type: 'security',
-          title: 'Security Alert',
-          message: `Transfer of ${withdrawAmount} ${crypto.symbol} initiated from your account`
-        }, toast);
-      }
-
-      toast({
-        title: 'Transfer successful!',
-        description: `${withdrawAmount} ${crypto.symbol} sent to ${recipientEmail}`,
-      });
 
       onWithdrawSuccess();
       onClose();
@@ -604,18 +649,72 @@ const WithdrawModal = ({
           </button>
         </div>
 
+        {/* Transfer Method Selection */}
+        <div className="mb-6">
+          <label className="block text-gray-700 mb-3">Transfer Method</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setTransferMethod('email')}
+              className={`p-3 border rounded-lg text-center transition-colors ${
+                transferMethod === 'email'
+                  ? 'border-crypto-blue bg-crypto-blue/10 text-crypto-blue'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Send size={20} className="mx-auto mb-1" />
+              <span className="text-sm font-medium">Email</span>
+            </button>
+            <button
+              onClick={() => setTransferMethod('wallet')}
+              className={`p-3 border rounded-lg text-center transition-colors ${
+                transferMethod === 'wallet'
+                  ? 'border-crypto-blue bg-crypto-blue/10 text-crypto-blue'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <Wallet size={20} className="mx-auto mb-1" />
+              <span className="text-sm font-medium">Wallet Address</span>
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-4">
+          {/* Recipient Input */}
           <div>
-            <label className="block text-gray-700 mb-2">Recipient Email Address</label>
-            <input
-              type="email"
-              placeholder="Enter recipient's email"
-              className="w-full p-3 border rounded-lg"
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-            />
+            <label className="block text-gray-700 mb-2">
+              {transferMethod === 'email' ? 'Recipient Email Address' : 'Recipient Wallet Address'}
+            </label>
+            {transferMethod === 'email' ? (
+              <input
+                type="email"
+                placeholder="Enter recipient's email"
+                className="w-full p-3 border rounded-lg"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+              />
+            ) : (
+              <div>
+                <input
+                  type="text"
+                  placeholder={`Enter ${crypto.symbol.toUpperCase()} wallet address`}
+                  className="w-full p-3 border rounded-lg"
+                  value={recipientWalletAddress}
+                  onChange={(e) => setRecipientWalletAddress(e.target.value)}
+                />
+                {!hasRequiredDeposit() && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-amber-800 text-sm">
+                      <strong>Deposit Required:</strong> You need to make a deposit of at least {(crypto.balance * 0.20).toFixed(8)} {crypto.symbol} (20% of your balance) before you can transfer using wallet addresses.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-xs text-gray-500 mt-1">
-              The recipient must have a registered account and a {crypto.symbol} wallet
+              {transferMethod === 'email' 
+                ? "The recipient must have a registered account and a " + crypto.symbol + " wallet"
+                : "Enter the recipient's wallet address for " + crypto.symbol.toUpperCase()
+              }
             </p>
           </div>
 
@@ -681,16 +780,19 @@ const WithdrawModal = ({
 
           <button
             onClick={handleWithdraw}
-            disabled={isWithdrawing}
-            className="w-full py-3 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50"
+            disabled={isWithdrawing || (transferMethod === 'wallet' && !hasRequiredDeposit())}
+            className="w-full py-3 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isWithdrawing ? 'Processing Transfer...' : 'Transfer Now'}
+            {isWithdrawing ? 'Processing Transfer...' : 
+             transferMethod === 'wallet' && !hasRequiredDeposit() ? 'Deposit Required' : 'Transfer Now'}
           </button>
         </div>
       </div>
     </div>
   );
 };
+
+// ... rest of the code remains the same (AddCryptoModal, TransactionDetailModal, Wallets component, etc.)
 
 const AddCryptoModal = ({ 
   onClose, 

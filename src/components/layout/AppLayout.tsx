@@ -702,30 +702,71 @@ const ContactSupportModal: React.FC<{
 };
 
 // Tawk.to Widget Component
+// Enhanced TawkToWidget with better session management
 const TawkToWidget: React.FC = () => {
   useEffect(() => {
-    const s1 = document.createElement('script');
-    const s0 = document.getElementsByTagName('script')[0];
-    
-    s1.async = true;
-    s1.src = 'https://embed.tawk.to/68c7c85653558c1921183e23/1j566d6rh';
-    s1.charset = 'UTF-8';
-    s1.setAttribute('crossorigin', '*');
-    
-    if (s0 && s0.parentNode) {
-      s0.parentNode.insertBefore(s1, s0);
-    } else {
-      document.head.appendChild(s1);
-    }
+    // Check if Tawk.to is already loaded
+    if (window.Tawk_API && window.Tawk_API.showWidget) return;
 
-    if (typeof window !== 'undefined') {
-      window.Tawk_API = window.Tawk_API || {};
-      window.Tawk_LoadStart = new Date();
+    const initTawkTo = () => {
+      if (!window.Tawk_API) return;
+      
+      // Configure Tawk.to for persistent sessions
+      window.Tawk_API.onLoad = function() {
+        // Critical configuration for session persistence
+        this.setAttributes({
+          'session': {
+            'persist': true
+          }
+        }, function(error: any) {
+          if (error) {
+            console.log('Tawk.to session configuration error:', error);
+          }
+        });
+        
+        // Prevent automatic ticket creation
+        this.setVisitorData({
+          name: 'Visitor',
+          email: '',
+          hash: Date.now().toString() // Unique identifier
+        });
+      };
+
+      // Handle before unload to maintain session
+      window.addEventListener('beforeunload', () => {
+        if (window.Tawk_API && window.Tawk_API.getStatus() === 'online') {
+          window.Tawk_API.endChat();
+        }
+      });
+    };
+
+    // Load Tawk.to script
+    const scriptId = 'tawk-to-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.async = true;
+      script.src = 'https://embed.tawk.to/68c7c85653558c1921183e23/1j566d6rh';
+      script.charset = 'UTF-8';
+      script.setAttribute('crossorigin', '*');
+      
+      script.onload = initTawkTo;
+      
+      const firstScript = document.getElementsByTagName('script')[0];
+      if (firstScript && firstScript.parentNode) {
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        document.head.appendChild(script);
+      }
+    } else {
+      initTawkTo();
     }
 
     return () => {
-      if (s1.parentNode) {
-        s1.parentNode.removeChild(s1);
+      // Cleanup if needed
+      const script = document.getElementById(scriptId);
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
       }
     };
   }, []);
