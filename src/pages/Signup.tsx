@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Mail, Lock, User, Eye, EyeOff, CheckCircle, 
   Loader2, Check, Server, Sparkles, Shield,
-  Cpu, Zap, Coins, Globe, Phone, MapPin,
-  Building, Home, Navigation
+  Cpu, Zap, Coins, Globe
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,71 +14,6 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import { auth, db } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-
-// Country data with flags and codes
-interface Country {
-  code: string;
-  name: string;
-  flag: string;
-  dialCode: string;
-}
-
-const countries: Country[] = [
-  { code: 'US', name: 'United States', flag: '🇺🇸', dialCode: '+1' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', dialCode: '+44' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦', dialCode: '+1' },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺', dialCode: '+61' },
-  { code: 'DE', name: 'Germany', flag: '🇩🇪', dialCode: '+49' },
-  { code: 'FR', name: 'France', flag: '🇫🇷', dialCode: '+33' },
-  { code: 'IT', name: 'Italy', flag: '🇮🇹', dialCode: '+39' },
-  { code: 'ES', name: 'Spain', flag: '🇪🇸', dialCode: '+34' },
-  { code: 'JP', name: 'Japan', flag: '🇯🇵', dialCode: '+81' },
-  { code: 'KR', name: 'South Korea', flag: '🇰🇷', dialCode: '+82' },
-  { code: 'CN', name: 'China', flag: '🇨🇳', dialCode: '+86' },
-  { code: 'IN', name: 'India', flag: '🇮🇳', dialCode: '+91' },
-  { code: 'BR', name: 'Brazil', flag: '🇧🇷', dialCode: '+55' },
-  { code: 'MX', name: 'Mexico', flag: '🇲🇽', dialCode: '+52' },
-  { code: 'NG', name: 'Nigeria', flag: '🇳🇬', dialCode: '+234' },
-  { code: 'ZA', name: 'South Africa', flag: '🇿🇦', dialCode: '+27' },
-  { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', dialCode: '+971' },
-  { code: 'SG', name: 'Singapore', flag: '🇸🇬', dialCode: '+65' },
-  { code: 'NL', name: 'Netherlands', flag: '🇳🇱', dialCode: '+31' },
-  { code: 'SE', name: 'Sweden', flag: '🇸🇪', dialCode: '+46' },
-  { code: 'NO', name: 'Norway', flag: '🇳🇴', dialCode: '+47' },
-  { code: 'DK', name: 'Denmark', flag: '🇩🇰', dialCode: '+45' },
-  { code: 'FI', name: 'Finland', flag: '🇫🇮', dialCode: '+358' },
-  { code: 'CH', name: 'Switzerland', flag: '🇨🇭', dialCode: '+41' },
-  { code: 'AT', name: 'Austria', flag: '🇦🇹', dialCode: '+43' },
-  { code: 'BE', name: 'Belgium', flag: '🇧🇪', dialCode: '+32' },
-  { code: 'PT', name: 'Portugal', flag: '🇵🇹', dialCode: '+351' },
-  { code: 'GR', name: 'Greece', flag: '🇬🇷', dialCode: '+30' },
-  { code: 'PL', name: 'Poland', flag: '🇵🇱', dialCode: '+48' },
-  { code: 'RU', name: 'Russia', flag: '🇷🇺', dialCode: '+7' },
-  { code: 'TR', name: 'Turkey', flag: '🇹🇷', dialCode: '+90' },
-  { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', dialCode: '+966' },
-  { code: 'EG', name: 'Egypt', flag: '🇪🇬', dialCode: '+20' },
-  { code: 'IL', name: 'Israel', flag: '🇮🇱', dialCode: '+972' },
-  { code: 'TH', name: 'Thailand', flag: '🇹🇭', dialCode: '+66' },
-  { code: 'ID', name: 'Indonesia', flag: '🇮🇩', dialCode: '+62' },
-  { code: 'MY', name: 'Malaysia', flag: '🇲🇾', dialCode: '+60' },
-  { code: 'VN', name: 'Vietnam', flag: '🇻🇳', dialCode: '+84' },
-  { code: 'PH', name: 'Philippines', flag: '🇵🇭', dialCode: '+63' },
-  { code: 'AR', name: 'Argentina', flag: '🇦🇷', dialCode: '+54' },
-  { code: 'CL', name: 'Chile', flag: '🇨🇱', dialCode: '+56' },
-  { code: 'CO', name: 'Colombia', flag: '🇨🇴', dialCode: '+57' },
-  { code: 'PE', name: 'Peru', flag: '🇵🇪', dialCode: '+51' },
-];
-
-// US States for demonstration
-const usStates = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
-  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
-  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
-  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
-  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
-  'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
-  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
-];
 
 interface PasswordRequirementProps {
   text: string;
@@ -251,39 +185,25 @@ const Signup = () => {
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [phoneNumber, setPhoneNumber] = useState<string>('');
-  const [selectedCountry, setSelectedCountry] = useState<Country>(countries[0]);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
   const [modalStep, setModalStep] = useState<number>(0);
   const [progress, setProgress] = useState<number>(0);
-  const [showCountryDropdown, setShowCountryDropdown] = useState<boolean>(false);
-  const [address, setAddress] = useState<string>('');
-  const [city, setCity] = useState<string>('');
-  const [state, setState] = useState<string>('');
-  const [zipCode, setZipCode] = useState<string>('');
-  const [dateOfBirth, setDateOfBirth] = useState<string>('');
-  const [occupation, setOccupation] = useState<string>('');
-  
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Filter countries for search
-  const [countrySearch, setCountrySearch] = useState<string>('');
-  const filteredCountries = countries.filter(country => 
-    country.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
-    country.code.toLowerCase().includes(countrySearch.toLowerCase())
-  );
-
   // Enhanced email validation that accepts various domain extensions
   const isValidEmail = (email: string): boolean => {
+    // More permissive email regex that allows various TLDs and custom domains
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+(\.[^\s@]+)*$/;
     
+    // Basic length and format check
     if (email.length < 3 || !email.includes('@') || !email.includes('.')) {
       return false;
     }
     
+    // Check for common email providers and custom domains
     const commonDomains = [
       'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com',
       'protonmail.com', 'icloud.com', 'mail.com', 'zoho.com', 'yandex.com'
@@ -291,16 +211,20 @@ const Signup = () => {
     
     const domain = email.split('@')[1]?.toLowerCase();
     
+    // Allow common email providers
     if (commonDomains.includes(domain)) {
       return emailRegex.test(email);
     }
     
+    // Allow custom domains with various TLDs
+    // This includes .com, .io, .ai, .org, .net, .co, .app, .dev, and many others
     const tldRegex = /\.(com|io|ai|org|net|co|app|dev|tech|finance|crypto|blockchain|wallet|exchange|market|trade|bitcoin|eth|xyz|info|biz|me|tv|cc|gg|so|to|nu|ws|eu|uk|de|fr|jp|cn|in|br|au|ca|mx|ru)$/i;
     
     if (domain && tldRegex.test(domain)) {
       return emailRegex.test(email);
     }
     
+    // For other domains, use basic email validation
     return emailRegex.test(email);
   };
 
@@ -388,24 +312,19 @@ const Signup = () => {
     }
   };
 
-  const handleCountrySelect = (country: Country) => {
-    setSelectedCountry(country);
-    setShowCountryDropdown(false);
-    setCountrySearch('');
-  };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !email || !password || !phoneNumber) {
+    if (!name || !email || !password) {
       toast({
         title: 'Error',
-        description: 'Please fill in all required fields',
+        description: 'Please fill in all fields',
         variant: 'destructive',
       });
       return;
     }
 
+    // Use the enhanced email validation
     if (!isValidEmail(email)) {
       toast({
         title: 'Invalid Email',
@@ -424,17 +343,6 @@ const Signup = () => {
       return;
     }
 
-    // Validate phone number (basic validation)
-    const fullPhoneNumber = selectedCountry.dialCode + phoneNumber.replace(/\D/g, '');
-    if (fullPhoneNumber.length < 8) {
-      toast({
-        title: 'Invalid Phone Number',
-        description: 'Please enter a valid phone number',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -444,22 +352,13 @@ const Signup = () => {
       await setDoc(doc(db, 'users', user.uid), {
         fullName: name,
         email: email,
-        phoneNumber: fullPhoneNumber,
-        country: selectedCountry.name,
-        countryCode: selectedCountry.code,
-        address: address,
-        city: city,
-        state: state,
-        zipCode: zipCode,
-        dateOfBirth: dateOfBirth,
-        occupation: occupation,
         createdAt: serverTimestamp(),
         hasSeenWalletCreation: false,
-        emailDomain: email.split('@')[1],
+        emailDomain: email.split('@')[1], // Store the domain for analytics
       });
 
       await setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), {
-        totalBalance: 1000, // Starting with $1000 bonus
+        totalBalance: 0,
         portfolioGrowth: 0,
         activeWallets: 0,
         topPerformer: null,
@@ -516,260 +415,77 @@ const Signup = () => {
           <form onSubmit={handleSignup}>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                {/* Personal Information Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name" className="flex items-center">
-                      <User className="h-4 w-4 mr-1" />
-                      Full Name *
-                    </Label>
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <div className="flex items-center border rounded px-3 py-2">
+                    <User className="h-4 w-4 text-muted-foreground mr-2" />
                     <Input
                       id="name"
                       type="text"
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="dob">Date of Birth</Label>
-                    <Input
-                      id="dob"
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="mt-1"
+                      className="flex-1 border-0 outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="occupation" className="flex items-center">
-                    <Building className="h-4 w-4 mr-1" />
-                    Occupation
-                  </Label>
-                  <Input
-                    id="occupation"
-                    type="text"
-                    placeholder="Software Engineer"
-                    value={occupation}
-                    onChange={(e) => setOccupation(e.target.value)}
-                    className="mt-1"
-                  />
+                  <Label htmlFor="email">Email Address</Label>
+                  <div className="flex items-center border rounded px-3 py-2">
+                    <Mail className="h-4 w-4 text-muted-foreground mr-2" />
+                    <Input
+                      id="email"
+                      type="text"
+                      placeholder="you@example.com or user@blockchain.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="flex-1 border-0 outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center">
+                    <Globe className="h-3 w-3 mr-1" />
+                    Supports custom domains like blockchain.com, coinbase.com, user.com, etc.
+                  </p>
                 </div>
 
-                {/* Contact Information Section */}
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center">
-                    <Mail className="h-5 w-5 mr-2 text-blue-500" />
-                    Contact Information
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="email" className="flex items-center">
-                        Email Address *
-                      </Label>
-                      <div className="flex items-center border rounded px-3 py-2 mt-1">
-                        <Mail className="h-4 w-4 text-muted-foreground mr-2" />
-                        <Input
-                          id="email"
-                          type="text"
-                          placeholder="you@example.com or user@blockchain.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="flex-1 border-0 outline-none p-0"
-                          required
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 flex items-center">
-                        <Globe className="h-3 w-3 mr-1" />
-                        Supports custom domains like blockchain.com, coinbase.com, user.com, etc.
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="phone" className="flex items-center">
-                        <Phone className="h-4 w-4 mr-1" />
-                        Phone Number *
-                      </Label>
-                      <div className="flex space-x-2 mt-1">
-                        {/* Country Selector */}
-                        <div className="relative flex-shrink-0 w-32">
-                          <button
-                            type="button"
-                            onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                            className="flex items-center justify-between w-full border rounded px-3 py-2 text-sm hover:bg-gray-50"
-                          >
-                            <span className="flex items-center">
-                              <span className="mr-2 text-base">{selectedCountry.flag}</span>
-                              {selectedCountry.dialCode}
-                            </span>
-                            <Navigation className="h-3 w-3 text-gray-400" />
-                          </button>
-
-                          {showCountryDropdown && (
-                            <div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto mt-1">
-                              <div className="p-2 border-b">
-                                <Input
-                                  placeholder="Search countries..."
-                                  value={countrySearch}
-                                  onChange={(e) => setCountrySearch(e.target.value)}
-                                  className="w-full text-sm"
-                                />
-                              </div>
-                              <div className="max-h-48 overflow-y-auto">
-                                {filteredCountries.map((country) => (
-                                  <button
-                                    key={country.code}
-                                    type="button"
-                                    onClick={() => handleCountrySelect(country)}
-                                    className="flex items-center w-full px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                                  >
-                                    <span className="mr-3 text-base">{country.flag}</span>
-                                    <span className="flex-1">{country.name}</span>
-                                    <span className="text-gray-500">{country.dialCode}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Phone Number Input */}
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="123 456 7890"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="flex-1"
-                          required
-                        />
-                      </div>
-                    </div>
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <div className="flex items-center border rounded px-3 py-2">
+                    <Lock className="h-4 w-4 text-muted-foreground mr-2" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="flex-1 border-0 outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="ml-2 text-gray-500 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
-                </div>
 
-                {/* Address Information Section */}
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center">
-                    <MapPin className="h-5 w-5 mr-2 text-green-500" />
-                    Address Information
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="address" className="flex items-center">
-                        <Home className="h-4 w-4 mr-1" />
-                        Street Address
-                      </Label>
-                      <Input
-                        id="address"
-                        type="text"
-                        placeholder="123 Main Street"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="city">City</Label>
-                        <Input
-                          id="city"
-                          type="text"
-                          placeholder="New York"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="state">State/Province</Label>
-                        <select
-                          id="state"
-                          value={state}
-                          onChange={(e) => setState(e.target.value)}
-                          className="w-full border rounded px-3 py-2 mt-1"
-                        >
-                          <option value="">Select State</option>
-                          {usStates.map((stateName) => (
-                            <option key={stateName} value={stateName}>
-                              {stateName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="zipCode">ZIP/Postal Code</Label>
-                        <Input
-                          id="zipCode"
-                          type="text"
-                          placeholder="10001"
-                          value={zipCode}
-                          onChange={(e) => setZipCode(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
+                  {/* Password strength bar */}
+                  <div className="mt-2 h-2 rounded-full w-full bg-gray-200">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                      style={{ width: `${(passwordStrength.strength / 4) * 100}%` }}
+                    />
                   </div>
-                </div>
+                  <p className="text-xs mt-1 text-gray-600">Strength: {passwordStrength.label}</p>
 
-                {/* Security Section */}
-                <div className="border-t pt-4">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center">
-                    <Shield className="h-5 w-5 mr-2 text-red-500" />
-                    Security
-                  </h3>
-                  
-                  <div>
-                    <Label htmlFor="password" className="flex items-center">
-                      Password *
-                    </Label>
-                    <div className="flex items-center border rounded px-3 py-2 mt-1">
-                      <Lock className="h-4 w-4 text-muted-foreground mr-2" />
-                      <Input
-                        id="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="flex-1 border-0 outline-none p-0"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="ml-2 text-gray-500 focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-
-                    {/* Password strength bar */}
-                    <div className="mt-2 h-2 rounded-full w-full bg-gray-200">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                        style={{ width: `${(passwordStrength.strength / 4) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs mt-1 text-gray-600">Strength: {passwordStrength.label}</p>
-
-                    {/* Password requirements */}
-                    <ul className="mt-2 space-y-1">
-                      <PasswordRequirement text="At least 8 characters" satisfied={password.length >= 8} />
-                      <PasswordRequirement text="Contains uppercase letter" satisfied={/[A-Z]/.test(password)} />
-                      <PasswordRequirement text="Contains number" satisfied={/[0-9]/.test(password)} />
-                      <PasswordRequirement text="Contains special character" satisfied={/[^A-Za-z0-9]/.test(password)} />
-                    </ul>
-                  </div>
+                  {/* Password requirements */}
+                  <ul className="mt-2 space-y-1">
+                    <PasswordRequirement text="At least 8 characters" satisfied={password.length >= 8} />
+                    <PasswordRequirement text="Contains uppercase letter" satisfied={/[A-Z]/.test(password)} />
+                    <PasswordRequirement text="Contains number" satisfied={/[0-9]/.test(password)} />
+                    <PasswordRequirement text="Contains special character" satisfied={/[^A-Za-z0-9]/.test(password)} />
+                  </ul>
                 </div>
               </div>
             </CardContent>
