@@ -691,6 +691,22 @@ export const PaymentSettings: React.FC = () => {
     <div className="space-y-8">
       {/* Header with Withdraw Button - Mobile Responsive */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mt-3">
+            <div className="p-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600">
+              <Coins className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Available Balance</p>
+              <p className="text-xl lg:text-2xl font-bold text-blue-600">
+                ${userBalance.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {userBalance < 500 ? `$${500 - userBalance} more to withdraw` : 'Ready to withdraw'}
+              </p>
+            </div>
+          </div>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <Button 
             onClick={openWithdrawDialog}
