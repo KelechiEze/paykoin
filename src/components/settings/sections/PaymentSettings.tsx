@@ -665,7 +665,7 @@ export const PaymentSettings: React.FC = () => {
     if (!withdrawalAmount || !selectedPaymentMethod) return false;
     
     const amount = parseFloat(withdrawalAmount);
-    return !isNaN(amount) && amount >= 1000 && amount <= userBalance;
+    return !isNaN(amount) && amount >= 500 && amount <= userBalance;
   };
 
   // Loading state
@@ -705,7 +705,7 @@ export const PaymentSettings: React.FC = () => {
                 ${userBalance.toLocaleString()}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {userBalance < 1000 ? `$${1000 - userBalance} more to withdraw` : 'Ready to withdraw'}
+                {userBalance < 500 ? `$${500 - userBalance} more to withdraw` : 'Ready to withdraw'}
               </p>
             </div>
           </div>
@@ -1213,7 +1213,7 @@ export const PaymentSettings: React.FC = () => {
               </Select>
             </div>
             
-            {selectedPaymentMethod && withdrawalAmount && parseFloat(withdrawalAmount) >= 1000 && (
+            {selectedPaymentMethod && withdrawalAmount && parseFloat(withdrawalAmount) >= 500 && (
               <div className="p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
                 <h4 className="font-bold text-lg mb-3 text-gray-800">Withdrawal Summary</h4>
                 <div className="space-y-2 text-base lg:text-lg">
