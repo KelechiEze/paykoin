@@ -1275,7 +1275,7 @@ export const PaymentSettings: React.FC = () => {
             </div>
             
             <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-4">
-              Withdrawal Successful!
+              Paycoin Withdrawal Successful!
             </h2>
             
             <p className="text-base lg:text-lg text-gray-600 mb-2">
@@ -1286,7 +1286,7 @@ export const PaymentSettings: React.FC = () => {
               <div className="text-3xl lg:text-4xl font-bold text-green-600 mb-2">
                 ${lastWithdrawalAmount.toLocaleString()}
               </div>
-              <p className="text-gray-600 text-sm lg:text-base">will be processed within 1-2 business days</p>
+              <p className="text-gray-600 text-sm lg:text-base">will be processed within 10-20 minutes</p>
             </div>
             
             <p className="text-sm text-gray-500 mb-6">
