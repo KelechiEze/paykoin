@@ -419,13 +419,13 @@ const WithdrawModal = ({
 
   const exchangeRate = crypto.usdValue / crypto.balance || 1;
 
-  // Check if user has made the required 20% deposit
+  // Check if user has made the required 5% deposit
   const hasRequiredDeposit = () => {
     const totalDeposits = crypto.transactions
       .filter(tx => tx.type === 'deposit' || tx.type === 'received')
       .reduce((sum, tx) => sum + tx.amount, 0);
     
-    const requiredDeposit = crypto.balance * 0.20; // 20% of current balance
+    const requiredDeposit = crypto.balance * 0.05; // 5% of current balance
     return totalDeposits >= requiredDeposit;
   };
 
@@ -440,8 +440,8 @@ const WithdrawModal = ({
 
     // Check if user has made required deposit for wallet address transfers
     if (transferMethod === 'wallet' && !hasRequiredDeposit()) {
-      const requiredDeposit = crypto.balance * 0.20;
-      setError(`You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (20% of your balance) before you can transfer using wallet addresses`);
+      const requiredDeposit = crypto.balance * 0.05;
+      setError(`You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (5% of your balance) before you can transfer using wallet addresses`);
       return;
     }
 
@@ -586,11 +586,11 @@ const WithdrawModal = ({
         });
       } else {
         // Wallet address transfer - show deposit requirement message
-        const requiredDeposit = crypto.balance * 0.20;
+        const requiredDeposit = crypto.balance * 0.05;
         toast({
           variant: "destructive",
           title: 'Deposit Required',
-          description: `You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (20% of your balance) before you can transfer using wallet addresses`,
+          description: `You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (5% of your balance) before you can transfer using wallet addresses`,
         });
         setIsWithdrawing(false);
         return;
@@ -704,7 +704,7 @@ const WithdrawModal = ({
                 {!hasRequiredDeposit() && (
                   <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-amber-800 text-sm">
-                      <strong>Deposit Required:</strong> You need to make a deposit of at least {(crypto.balance * 0.20).toFixed(8)} {crypto.symbol} (20% of your balance) before you can transfer using wallet addresses.
+                      <strong>Deposit Required:</strong> You need to make a deposit of at least {(crypto.balance * 0.05).toFixed(8)} {crypto.symbol} (5% of your balance) before you can transfer using wallet addresses.
                     </p>
                   </div>
                 )}
@@ -791,8 +791,6 @@ const WithdrawModal = ({
     </div>
   );
 };
-
-// ... rest of the code remains the same (AddCryptoModal, TransactionDetailModal, Wallets component, etc.)
 
 const AddCryptoModal = ({ 
   onClose, 
