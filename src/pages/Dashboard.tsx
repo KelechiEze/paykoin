@@ -14,7 +14,7 @@ import { auth, db } from '@/firebase';
 import { 
   doc, getDoc, onSnapshot, collection, 
   addDoc, query, where, orderBy, serverTimestamp,
-  updateDoc, arrayUnion, arrayRemove, getDocs
+  updateDoc, arrayUnion, arrayRemove, getDocs, setDoc
 } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 
@@ -51,32 +51,10 @@ interface AITradingSuggestion {
   image?: string;
 }
 
-// Commenting out messaging interfaces for now
-/*
-interface Message {
-  id: string;
-  senderId: string;
-  senderEmail: string;
-  senderName: string;
-  receiverId: string;
-  receiverEmail: string;
-  content: string;
-  timestamp: any;
-  read: boolean;
-}
-
-interface User {
-  uid: string;
-  email: string;
-  displayName: string;
-}
-*/
-
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-  // const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [marketTrends, setMarketTrends] = useState<MarketTrend[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,18 +69,8 @@ const Dashboard: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState<AITradingSuggestion | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [hasAddedBonus, setHasAddedBonus] = useState(false);
   
-  // Commenting out messaging states for now
-  /*
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newMessage, setNewMessage] = useState('');
-  const [searchEmail, setSearchEmail] = useState('');
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  */
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
 
@@ -126,27 +94,94 @@ const Dashboard: React.FC = () => {
     setWelcomeMessage(welcomeMessages[randomIndex]);
   }, []);
 
-  // Fetch dashboard data from Firestore
+  // Add $1000 bonus to user's balance on first load
+  const addWelcomeBonus = async (userId: string) => {
+    try {
+      const userDocRef = doc(db, 'users', userId, 'dashboard', 'stats');
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const currentData = userDoc.data() as DashboardData;
+        
+        // Check if bonus has already been added (balance is $1000 or more)
+        if (currentData.totalBalance >= 1000) {
+          setHasAddedBonus(true);
+          return;
+        }
+        
+        // Add $1000 to the balance
+        const updatedData = {
+          ...currentData,
+          totalBalance: currentData.totalBalance + 1000,
+          portfolioGrowth: currentData.portfolioGrowth >= 0 ? currentData.portfolioGrowth : 0
+        };
+        
+        await setDoc(userDocRef, updatedData);
+        setHasAddedBonus(true);
+        console.log('$1000 welcome bonus added!');
+      } else {
+        // Create new document with $1000 starting balance
+        const initialData: DashboardData = {
+          totalBalance: 1000,
+          portfolioGrowth: 0,
+          activeWallets: 1,
+          topPerformer: 'BTC'
+        };
+        
+        await setDoc(userDocRef, initialData);
+        setHasAddedBonus(true);
+        console.log('New user created with $1000 starting balance!');
+      }
+    } catch (error) {
+      console.error('Error adding welcome bonus:', error);
+    }
+  };
+
+  // Fetch dashboard data from Firestore and add bonus
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', user.uid, 'dashboard', 'stats'),
-      (doc) => {
-        if (doc.exists()) {
-          setDashboardData(doc.data() as DashboardData);
-        } else {
-          console.log('No dashboard data found');
+    const initializeUserData = async () => {
+      try {
+        // Add welcome bonus if not already added
+        if (!hasAddedBonus) {
+          await addWelcomeBonus(user.uid);
         }
-      },
-      (err) => {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data');
-      }
-    );
 
-    return () => unsubscribe();
-  }, [user]);
+        // Set up real-time listener for dashboard data
+        const unsubscribe = onSnapshot(
+          doc(db, 'users', user.uid, 'dashboard', 'stats'),
+          (doc) => {
+            if (doc.exists()) {
+              const data = doc.data() as DashboardData;
+              setDashboardData(data);
+            } else {
+              // Create initial data if document doesn't exist
+              const initialData: DashboardData = {
+                totalBalance: 1000,
+                portfolioGrowth: 0,
+                activeWallets: 1,
+                topPerformer: 'BTC'
+              };
+              setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), initialData);
+              setDashboardData(initialData);
+            }
+          },
+          (err) => {
+            console.error('Error fetching dashboard data:', err);
+            setError('Failed to load dashboard data');
+          }
+        );
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('Error initializing user data:', error);
+        setError('Failed to initialize dashboard');
+      }
+    };
+
+    initializeUserData();
+  }, [user, hasAddedBonus]);
 
   // Fetch market trends data
   useEffect(() => {
@@ -451,14 +486,6 @@ const Dashboard: React.FC = () => {
       .replace(/\b\w/g, char => char.toUpperCase());
   };
 
-  /*
-  const formatTime = (timestamp: any) => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate();
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  */
-
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header with Messages Icon */}
@@ -470,12 +497,6 @@ const Dashboard: React.FC = () => {
             className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors relative"
           >
             <MessageSquare size={24} />
-            {/* Commenting out unread count for now */}
-            {/* {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )} */}
           </button>
         </div>
       </div>
@@ -496,6 +517,12 @@ const Dashboard: React.FC = () => {
             : 'User'}
         </h2>
         <p className="text-sm mt-1">{welcomeMessage}</p>
+        {dashboardData.totalBalance >= 1000 && (
+          <div className="mt-2 flex items-center space-x-2 bg-green-500 bg-opacity-20 px-3 py-1 rounded-full w-fit">
+            <Star size={14} className="text-yellow-300" />
+            <span className="text-xs font-medium">$1000 Welcome Bonus Added!</span>
+          </div>
+        )}
       </motion.div>
 
       {/* Balance Card */}
@@ -507,6 +534,12 @@ const Dashboard: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-gray-600">Total Balance</h2>
+          {dashboardData.totalBalance >= 1000 && (
+            <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              <Star size={12} className="fill-current" />
+              <span className="text-xs font-medium">Bonus Included</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -546,14 +579,10 @@ const Dashboard: React.FC = () => {
             <Activity size={18} className="mr-2" />
             <span>Transfer</span>
           </button>
-
-          {/*<button className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
-            <TrendingUp size={18} className="mr-2" />
-            <span>Trade</span>
-          </button>*/}
         </div>
       </motion.section>
 
+      {/* Rest of the component remains the same */}
       {/* AI Trading Suggestions Section */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
@@ -676,16 +705,6 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </motion.section>
-
-      {/* Crypto Chart - Commented Out */}
-      {/* <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="dashboard-card"
-      >
-        <CryptoChart />
-      </motion.section> */}
 
       {/* Crypto Assets Modal */}
       <CryptoAssetsModal 
@@ -849,6 +868,9 @@ const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+// The rest of the components (AITradingCard, StatCard, PercentageChange) remain exactly the same
+// ... [Keep all the existing component code below exactly as it was]
 
 interface AITradingCardProps {
   crypto: AITradingSuggestion;
