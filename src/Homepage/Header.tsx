@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
-  onOpenQuote?: () => void; // Make it optional
+  onOpenQuote: () => void; // Make it required
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenQuote }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,10 +17,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuote }) => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleLogin = () => {
-    navigate('/login');
-  };
 
   return (
     <header
@@ -76,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuote }) => {
         {/* CTA Button */}
         <div className="hidden md:flex items-center">
           <button
-            onClick={handleLogin}
+            onClick={onOpenQuote} // Call the prop, not navigate directly
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#61dafb] text-slate-950 font-bold text-sm hover:bg-[#4faee3] transition-all duration-300 shadow-lg shadow-[#61dafb]/25 hover:scale-[1.03] active:scale-95 cursor-pointer"
           >
             <span>Login Now</span>
@@ -134,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenQuote }) => {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  handleLogin();
+                  onOpenQuote(); // Call the prop, not navigate directly
                 }}
                 className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#61dafb] text-slate-950 font-bold text-sm hover:bg-[#4faee3] transition-all shadow-lg shadow-[#61dafb]/25"
               >

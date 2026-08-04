@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { ArrowUpRight, Play, Pause, X, ExternalLink, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
-  onOpenQuote?: () => void; // Make it optional
+  onOpenQuote: () => void; // Make it required
 }
 
 export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
@@ -12,7 +11,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [showPurchaseWidget, setShowPurchaseWidget] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const navigate = useNavigate();
 
   const { scrollY } = useScroll();
   const backgroundY = useTransform(scrollY, [0, 1000], [0, 280]);
@@ -36,10 +34,6 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
         });
       }
     }
-  };
-
-  const handleLogin = () => {
-    navigate('/login');
   };
 
   return (
@@ -185,7 +179,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
         className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 z-20 flex-col items-center"
       >
         <button
-          onClick={handleLogin}
+          onClick={onOpenQuote} // Call the prop
           className="group relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center hover:bg-[#4faee3] transition-all duration-500 shadow-2xl shadow-[#61dafb]/40 hover:scale-110 active:scale-95 cursor-pointer"
           aria-label="Login Now"
           title="Login Now"

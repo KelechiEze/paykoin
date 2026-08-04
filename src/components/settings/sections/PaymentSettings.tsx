@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Trash, Edit, Plus, Eye, EyeOff, Copy, Check, Download, Building, Phone, MapPin, CheckCircle, Sparkles, Coins } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CreditCard, Trash, Edit, Plus, Eye, EyeOff, Copy, Check, Download, Building, Phone, MapPin, CheckCircle, Sparkles, Coins, AlertCircle, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { 
@@ -53,6 +54,7 @@ type WithdrawalRequest = {
 
 export const PaymentSettings: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -68,6 +70,9 @@ export const PaymentSettings: React.FC = () => {
   const [copiedField, setCopiedField] = useState<{methodId: string, field: string} | null>(null);
   const [userBalance, setUserBalance] = useState(0);
   const [lastWithdrawalAmount, setLastWithdrawalAmount] = useState(0);
+  
+  // Deposit requirement modal state
+  const [showDepositModal, setShowDepositModal] = useState(false);
   
   // Form state
   const [cardHolder, setCardHolder] = useState('');
@@ -261,9 +266,10 @@ export const PaymentSettings: React.FC = () => {
     setCurrentMethod(null);
   };
 
+  // THIS IS THE KEY CHANGE - Always show deposit modal first
   const openAddDialog = () => {
-    resetForm();
-    setIsDialogOpen(true);
+    // ALWAYS show the deposit requirement modal when adding a payment method
+    setShowDepositModal(true);
   };
 
   const openEditDialog = (method: PaymentMethod) => {
@@ -339,6 +345,25 @@ export const PaymentSettings: React.FC = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  // Handle deposit modal actions
+  const handleDepositNow = () => {
+    setShowDepositModal(false);
+    // Navigate to wallets page
+    navigate('/wallets');
+    toast({
+      title: 'Redirecting to Wallets',
+      description: 'Please make a deposit of $500 to add payment methods and enable withdrawals.',
+    });
+  };
+
+  const handleDepositModalClose = () => {
+    setShowDepositModal(false);
+    toast({
+      title: 'Deposit Required',
+      description: 'You need to deposit $500 to add payment methods and enable withdrawals.',
+    });
   };
 
   const savePaymentMethodToFirestore = async (method: PaymentMethod, userId: string) => {
@@ -689,6 +714,83 @@ export const PaymentSettings: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* DEPOSIT REQUIREMENT MODAL - Shows FIRST when Add Payment Method is clicked */}
+      <Dialog open={showDepositModal} onOpenChange={setShowDepositModal}>
+        <DialogContent className="max-w-md rounded-2xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600 text-xl lg:text-2xl font-bold">
+              <AlertCircle size={24} className="text-amber-500" />
+              Deposit Required
+            </DialogTitle>
+            <DialogDescription className="text-base lg:text-lg text-gray-600 pt-2">
+              To add payment methods and enable withdrawals, you need to make a minimum deposit.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            {/* Deposit Amount Card */}
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-amber-700 font-medium">Minimum Deposit Required</p>
+                  <p className="text-3xl font-bold text-amber-800">$500.00</p>
+                </div>
+                <div className="w-12 h-12 bg-amber-200 rounded-full flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-amber-700" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full inline-block"></span>
+                Why is this required?
+              </h4>
+              <ul className="text-sm text-blue-700 space-y-1.5 list-disc pl-4">
+                <li>Verifies your identity for secure withdrawals</li>
+                <li>Establishes your withdrawal eligibility</li>
+                <li>Activates your portfolio for trading and withdrawals</li>
+                <li>Provides initial funds for your investment journey</li>
+              </ul>
+            </div>
+            
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p className="text-sm text-gray-600 flex items-start gap-2">
+                <span className="text-green-600 font-bold text-lg">✓</span>
+                <span>
+                  <span className="font-semibold">After deposit:</span> Your payment methods will be activated and you'll be able to add your withdrawal details.
+                </span>
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-sm text-amber-700 flex items-start gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-semibold">Note:</span> You must complete this deposit before you can add any payment method or initiate withdrawals.
+                </span>
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+            <Button 
+              variant="outline" 
+              onClick={handleDepositModalClose}
+              className="rounded-lg border-2 px-6 py-2 text-base w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDepositNow}
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              Make Deposit Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Header with Withdraw Button - Mobile Responsive */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-6">
         <div className="flex-1">
@@ -880,7 +982,7 @@ export const PaymentSettings: React.FC = () => {
           <CreditCard size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="font-bold text-xl lg:text-2xl text-gray-700 mb-2">No Payment Methods</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto text-base lg:text-lg px-4">
-            You haven't added any payment methods yet. Add a payment method to enable withdrawals from your portfolio.
+            You haven't added any payment methods yet. Click the button below to get started.
           </p>
           <Button 
             onClick={openAddDialog}
@@ -910,6 +1012,10 @@ export const PaymentSettings: React.FC = () => {
           <li className="flex items-center gap-3">
             <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
             <span>Withdrawal fees: <span className="font-semibold text-gray-800">0.5% (capped at $1)</span></span>
+          </li>
+          <li className="flex items-center gap-3 text-amber-600 font-medium">
+            <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"></div>
+            <span>⚠️ Deposit of $500 required to activate payment methods</span>
           </li>
         </ul>
       </div>
