@@ -1,0 +1,514 @@
+.crypto-chart-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.crypto-chart-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #06b6d4);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 12px;
+  transition: all 0.3s ease;
+  background: #ffffff;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.crypto-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 180px;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.crypto-dropdown-trigger:hover {
+  border-color: #d1d5db;
+  background: #f8fafc;
+}
+
+.crypto-dropdown-trigger:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.selected-crypto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.crypto-icon-image {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.crypto-icon-large {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.crypto-icon-fallback {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.crypto-icon-fallback-large {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.crypto-symbol {
+  color: #6b7280;
+  font-size: 10px;
+}
+
+.crypto-dropdown-content {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  min-width: 240px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.dropdown-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 6px;
+}
+
+.dropdown-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+  display: block;
+}
+
+.dropdown-subtitle {
+  font-size: 10px;
+  color: #6b7280;
+  display: block;
+  margin-top: 2px;
+}
+
+.dropdown-list-container {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.no-results {
+  padding: 12px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.crypto-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 12px;
+}
+
+.crypto-dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.crypto-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.crypto-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.crypto-symbol-small {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.selected-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  margin-left: auto;
+}
+
+.chart-content {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+}
+
+.crypto-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.crypto-details h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.crypto-details p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 12px;
+}
+
+.price-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.current-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.price-change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.price-change.positive {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.price-change.negative {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.chart-wrapper {
+  height: 300px;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.time-selector {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.time-button {
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.time-button:hover {
+  background: #f8fafc;
+  border-color: #d1d5db;
+}
+
+.time-button.active {
+  background: #6366f1;
+  color: #ffffff;
+  border-color: #6366f1;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stat-item {
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 800px) {
+  .crypto-chart-container {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .chart-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .chart-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .search-container {
+    max-width: 100%;
+  }
+  
+  .crypto-dropdown-trigger {
+    min-width: 100%;
+  }
+  
+  .crypto-info {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .price-info {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .current-price {
+    font-size: 1.1rem;
+  }
+  
+  .chart-wrapper {
+    height: 250px;
+  }
+  
+  .time-selector {
+    justify-content: center;
+  }
+
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .crypto-chart-container {
+    padding: 10px;
+    border-radius: 10px;
+  }
+  
+  .chart-title {
+    font-size: 1rem;
+  }
+  
+  .crypto-icon-large {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .crypto-icon-fallback-large {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .chart-wrapper {
+    height: 220px;
+  }
+  
+  .crypto-dropdown-content {
+    min-width: 100%;
+    max-height: 250px;
+  }
+
+  .crypto-details h3 {
+    font-size: 1rem;
+  }
+
+  .current-price {
+    font-size: 1rem;
+  }
+
+  .price-change {
+    font-size: 11px;
+  }
+}

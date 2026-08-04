@@ -1,0 +1,110 @@
+/* homepage.css - Fixed marquee animation */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Homepage specific styles - scoped to .homepage */
+.homepage {
+  font-family: 'Poppins', sans-serif;
+  background-color: #0b0f17;
+  color: #ffffff;
+}
+
+.homepage * {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Homepage animations - keep these global or use the same scope */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 15s linear infinite;
+}
+
+/* IMPORTANT: Keep marquee animation global or use .homepage on the parent */
+@keyframes marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-33.333333%, 0, 0);
+  }
+}
+
+/* Option A: Make it global (unscoped) */
+.animate-marquee {
+  display: flex !important;
+  width: max-content !important;
+  animation: marquee 30s linear infinite !important;
+  will-change: transform !important;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused !important;
+}
+
+/* OR Option B: Use both scoped and unscoped versions */
+.homepage .animate-marquee {
+  display: flex !important;
+  width: max-content !important;
+  animation: marquee 30s linear infinite !important;
+  will-change: transform !important;
+}
+
+.homepage .animate-marquee:hover {
+  animation-play-state: paused !important;
+}
+
+/* Homepage scrollbar - only for homepage */
+.homepage::-webkit-scrollbar {
+  width: 8px;
+}
+.homepage::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.homepage::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.homepage::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Modal fixes for homepage */
+.homepage .fixed {
+  position: fixed !important;
+}
+
+.homepage .inset-0 {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+}
+
+.homepage .z-50 {
+  z-index: 50 !important;
+}
+
+.homepage .backdrop-blur-md {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.homepage .backdrop-blur-sm {
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* Ensure modal containers are not affected by transforms */
+.homepage [role="dialog"],
+.homepage [data-modal="true"] {
+  transform: none !important;
+  backface-visibility: visible !important;
+  perspective: none !important;
+}
