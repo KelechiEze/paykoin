@@ -70,25 +70,25 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
   return (
-    <section id="packages" className="bg-[#fcfdfc] text-zinc-900 py-20 lg:py-28 px-4 sm:px-6 lg:px-8 border-b border-zinc-200/80 select-none">
+    <section id="packages" className="bg-[#fcfdfc] text-zinc-900 py-16 lg:py-20 px-4 sm:px-6 lg:px-8 border-b border-zinc-200/80 select-none">
       <div className="max-w-7xl mx-auto">
         {/* Top Header matching prompt */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="text-zinc-500 font-medium text-xs sm:text-sm tracking-wide block mb-2">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <span className="text-zinc-500 font-medium text-[10px] sm:text-xs tracking-wide block mb-2">
             Committed to clients, focused on results
           </span>
 
-          <h2 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold text-zinc-900 tracking-tight leading-[1.1] font-sans">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.2] font-sans">
             Delivering the highest
             <br />
             quality outcomes
           </h2>
 
           {/* Monthly / Yearly Toggle Pill */}
-          <div className="mt-8 inline-flex items-center bg-zinc-900 p-1.5 rounded-xl text-xs font-semibold">
+          <div className="mt-6 inline-flex items-center bg-zinc-900 p-1 rounded-lg text-xs font-semibold">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-5 py-2 rounded-lg transition-all cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg transition-all cursor-pointer ${
                 billingCycle === 'monthly'
                   ? 'bg-zinc-800 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-white'
@@ -98,14 +98,14 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
             </button>
             <button
               onClick={() => setBillingCycle('yearly')}
-              className={`px-5 py-2 rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                 billingCycle === 'yearly'
                   ? 'bg-zinc-800 text-white shadow-sm'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
               <span>Yearly</span>
-              <span className="bg-[#61dafb] text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+              <span className="bg-[#61dafb] text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
                 Save up to 25%
               </span>
             </button>
@@ -113,7 +113,7 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
         </div>
 
         {/* 3 Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
           {INVESTMENT_PACKAGES.map((pkg) => {
             const isDark = pkg.popular;
             const price =
@@ -122,7 +122,7 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
             return (
               <div
                 key={pkg.id}
-                className={`rounded-[28px] sm:rounded-[32px] p-8 sm:p-9 flex flex-col justify-between transition-all duration-300 ${
+                className={`rounded-[24px] sm:rounded-[28px] p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
                   isDark
                     ? 'bg-zinc-950 text-white shadow-2xl border border-zinc-800'
                     : 'bg-white text-zinc-900 border border-zinc-200/90 shadow-sm hover:shadow-xl'
@@ -130,18 +130,18 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
               >
                 <div>
                   {/* ROI Badge */}
-                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-extrabold uppercase tracking-wider mb-3 ${
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider mb-2.5 ${
                     isDark
                       ? 'bg-[#61dafb]/20 border-[#61dafb]/40 text-[#61dafb]'
                       : 'bg-[#61dafb]/20 border-[#61dafb]/40 text-[#0284c7]'
                   }`}>
-                    <TrendingUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <TrendingUp className="w-3 h-3 stroke-[2.5]" />
                     <span>{pkg.roi}</span>
                   </div>
 
                   {/* Card Header Title */}
                   <h3
-                    className={`text-2xl font-extrabold tracking-tight mb-3 ${
+                    className={`text-xl font-extrabold tracking-tight mb-2 ${
                       isDark ? 'text-white' : 'text-zinc-900'
                     }`}
                   >
@@ -149,7 +149,7 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
                   </h3>
 
                   <p
-                    className={`text-xs sm:text-sm leading-relaxed mb-6 font-normal ${
+                    className={`text-xs leading-relaxed mb-4 font-normal ${
                       isDark ? 'text-zinc-300' : 'text-zinc-500'
                     }`}
                   >
@@ -157,16 +157,16 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
                   </p>
 
                   {/* Price Tag */}
-                  <div className="flex items-baseline gap-1.5 mb-8">
+                  <div className="flex items-baseline gap-1.5 mb-6">
                     <span
-                      className={`text-4xl sm:text-5xl font-extrabold tracking-tight font-sans ${
+                      className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-sans ${
                         isDark ? 'text-white' : 'text-zinc-900'
                       }`}
                     >
                       {price}
                     </span>
                     <span
-                      className={`text-xs sm:text-sm font-medium ${
+                      className={`text-[10px] sm:text-xs font-medium ${
                         isDark ? 'text-zinc-400' : 'text-zinc-500'
                       }`}
                     >
@@ -177,29 +177,29 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
                   {/* Primary Action Button directly under price */}
                   <button
                     onClick={onOpenConsultation}
-                    className={`w-full py-4 px-6 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md transform hover:-translate-y-0.5 mb-8 ${
+                    className={`w-full py-3 px-4 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md transform hover:-translate-y-0.5 mb-6 ${
                       isDark
                         ? 'bg-[#61dafb] hover:bg-[#4faee3] text-slate-950 shadow-lg shadow-[#61dafb]/25'
                         : 'bg-zinc-900 hover:bg-black text-white'
                     }`}
                   >
                     <span>Login Now</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
 
                   {/* Divider */}
                   <div
-                    className={`w-full h-px mb-8 ${
+                    className={`w-full h-px mb-6 ${
                       isDark ? 'bg-zinc-800' : 'bg-zinc-100'
                     }`}
                   />
 
                   {/* Features List with Filled Blue Checkmark Circles */}
-                  <ul className="space-y-4">
+                  <ul className="space-y-3">
                     {pkg.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-3 text-xs sm:text-sm">
-                        <div className="w-5 h-5 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center shrink-0">
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      <li key={idx} className="flex items-center gap-2.5 text-xs sm:text-xs">
+                        <div className="w-4 h-4 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center shrink-0">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                         <span
                           className={`font-medium ${

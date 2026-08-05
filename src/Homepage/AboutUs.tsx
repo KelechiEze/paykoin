@@ -17,7 +17,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({ onOpenQuote }) => {
   ];
 
   return (
-    <section id="about" className="bg-white text-gray-900 py-20 sm:py-28 px-4 sm:px-6 lg:px-12 font-['Poppins']">
+    <section id="about" className="bg-white text-gray-900 py-16 sm:py-20 px-4 sm:px-6 lg:px-12 font-['Poppins']">
       <div className="max-w-7xl mx-auto">
         {/* Top Header Text Block */}
         <motion.div
@@ -25,26 +25,26 @@ export const AboutUs: React.FC<AboutUsProps> = ({ onOpenQuote }) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12 sm:mb-16 max-w-5xl"
+          className="mb-10 sm:mb-14 max-w-5xl"
         >
-          <div className="text-[#0284c7] font-semibold text-sm sm:text-base mb-3 flex items-center gap-1.5">
+          <div className="text-[#0284c7] font-semibold text-xs sm:text-sm mb-3 flex items-center gap-1.5">
             <span className="text-[#0284c7] font-bold">//</span> About Paycoin Platform
           </div>
-          <h2 className="text-3xl sm:text-5xl lg:text-5xl font-semibold sm:font-bold tracking-tight text-gray-900 leading-[1.25] sm:leading-[1.2] mb-8 font-['Poppins']">
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold sm:font-bold tracking-tight text-gray-900 leading-[1.3] sm:leading-[1.25] mb-6 font-['Poppins']">
             Paycoin is a next-generation company that enables cryptocurrency investments through our automated platform. The more you invest, the more you earn — with guaranteed Return on Investment (ROI) paid out across all deposit levels.
           </h2>
 
           <button
             onClick={onOpenQuote}
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-[#61dafb] hover:bg-[#4faee3] text-slate-950 font-bold text-sm sm:text-base transition-all duration-300 shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#61dafb] hover:bg-[#4faee3] text-slate-950 font-semibold text-sm sm:text-base transition-all duration-300 shadow-md hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <span>Login Now</span>
-            <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
+            <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </motion.div>
 
         {/* 2-Column Section: Image on Left, Stats List on Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column: Image of Crypto Trading & Consultation */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -74,12 +74,12 @@ export const AboutUs: React.FC<AboutUsProps> = ({ onOpenQuote }) => {
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="py-6 sm:py-8 flex items-center justify-between gap-4 group"
+                className="py-4 sm:py-5 flex items-center justify-between gap-4 group"
               >
-                <span className="text-base sm:text-xl font-medium text-gray-600 group-hover:text-gray-900 transition-colors">
+                <span className="text-sm sm:text-base md:text-lg font-medium text-gray-600 group-hover:text-gray-900 transition-colors">
                   {stat.label}
                 </span>
-                <span className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-[#0284c7] font-['Poppins'] tracking-tight">
+                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#0284c7] font-['Poppins'] tracking-tight">
                   {stat.value}
                 </span>
               </div>

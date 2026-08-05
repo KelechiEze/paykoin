@@ -42,16 +42,16 @@ export const OurStorySection: React.FC = () => {
   ];
 
   return (
-    <section id="our-story" className="bg-white text-gray-900 py-20 sm:py-28 px-4 sm:px-6 lg:px-12 font-['Poppins'] border-t border-gray-100">
+    <section id="our-story" className="bg-white text-gray-900 py-16 sm:py-20 px-4 sm:px-6 lg:px-12 font-['Poppins'] border-t border-gray-100">
       <div className="max-w-7xl mx-auto">
         {/* Header Layout: // Our Story tag on Left, Statement on Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 sm:mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12 sm:mb-14">
           <div className="lg:col-span-3">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-[#0284c7] font-semibold text-sm sm:text-base flex items-center gap-1.5"
+              className="text-[#0284c7] font-semibold text-xs sm:text-sm flex items-center gap-1.5"
             >
               <span className="text-[#0284c7] font-bold">//</span> Our Vision
             </motion.div>
@@ -63,7 +63,7 @@ export const OurStorySection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="text-2xl sm:text-4xl lg:text-5xl font-semibold sm:font-bold text-gray-900 leading-[1.25] font-['Poppins'] tracking-tight"
+              className="text-base sm:text-lg lg:text-xl font-semibold sm:font-bold text-gray-900 leading-[1.5] sm:leading-[1.4] font-['Poppins'] tracking-tight"
             >
               Paycoin Was Created With A Vision To Transform The Cryptocurrency Investment Experience Through Trust, Transparency, And High-Yield Innovation. We Are Dedicated To Helping Global Investors Grow Their Crypto Capital With Guaranteed ROI, Guided By Automated Precision And Uncompromising Asset Security.
             </motion.h2>
@@ -71,7 +71,7 @@ export const OurStorySection: React.FC = () => {
         </div>
 
         {/* 4 Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {cards.map((card, idx) => (
             <motion.div
               key={card.id}
@@ -79,21 +79,21 @@ export const OurStorySection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.12 }}
-              className={`p-8 sm:p-9 rounded-3xl flex flex-col justify-between min-h-[280px] sm:min-h-[320px] transition-all duration-300 hover:-translate-y-1 ${card.bgClass}`}
+              className={`p-5 sm:p-6 rounded-2xl flex flex-col justify-between min-h-[220px] sm:min-h-[240px] transition-all duration-300 hover:-translate-y-1 ${card.bgClass}`}
             >
               {/* Giant Number top right */}
               <div className="flex justify-end">
-                <span className="text-5xl sm:text-6xl lg:text-7xl font-bold font-['Poppins'] tracking-tight">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold font-['Poppins'] tracking-tight">
                   {card.number}
                 </span>
               </div>
 
               {/* Title & Description at bottom */}
-              <div className="mt-8 space-y-2">
-                <h3 className={`text-xl sm:text-2xl font-bold font-['Poppins'] ${card.titleClass}`}>
+              <div className="mt-6 space-y-1.5">
+                <h3 className={`text-base sm:text-lg font-bold font-['Poppins'] ${card.titleClass}`}>
                   {card.title}
                 </h3>
-                <p className={`text-sm leading-relaxed ${card.descClass}`}>
+                <p className={`text-xs sm:text-sm leading-relaxed ${card.descClass}`}>
                   {card.description}
                 </p>
               </div>

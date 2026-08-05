@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Eye, EyeOff, TrendingUp, TrendingDown, Activity, 
-  ArrowRight, DollarSign, Bitcoin, Wallet, MessageSquare,
+  ArrowRight, DollarSign, Bitcoin, Wallet, 
   Send, X, Bell, Search, Loader, Brain, AlertTriangle,
   Star, Zap, Target, Check, ArrowUpRight
 } from 'lucide-react';
@@ -51,12 +51,256 @@ interface AITradingSuggestion {
   image?: string;
 }
 
+// FALLBACK MARKET DATA - This ensures market trends NEVER fail to load
+const FALLBACK_MARKET_TRENDS: MarketTrend[] = [
+  {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    symbol: 'BTC',
+    current_price: 43250.75,
+    price_change_percentage_24h: 2.34,
+    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png'
+  },
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    current_price: 2580.45,
+    price_change_percentage_24h: 1.87,
+    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png'
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    symbol: 'SOL',
+    current_price: 102.30,
+    price_change_percentage_24h: 5.67,
+    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png'
+  },
+  {
+    id: 'cardano',
+    name: 'Cardano',
+    symbol: 'ADA',
+    current_price: 0.52,
+    price_change_percentage_24h: -0.45,
+    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png'
+  },
+  {
+    id: 'ripple',
+    name: 'XRP',
+    symbol: 'XRP',
+    current_price: 2.80,
+    price_change_percentage_24h: 1.20,
+    image: 'https://coin-images.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png'
+  },
+  {
+    id: 'dogecoin',
+    name: 'Dogecoin',
+    symbol: 'DOGE',
+    current_price: 0.23,
+    price_change_percentage_24h: 3.20,
+    image: 'https://coin-images.coingecko.com/coins/images/5/small/dogecoin.png'
+  },
+  {
+    id: 'polkadot',
+    name: 'Polkadot',
+    symbol: 'DOT',
+    current_price: 3.86,
+    price_change_percentage_24h: 2.10,
+    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png'
+  },
+  {
+    id: 'chainlink',
+    name: 'Chainlink',
+    symbol: 'LINK',
+    current_price: 20.48,
+    price_change_percentage_24h: -6.20,
+    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png'
+  },
+  {
+    id: 'avalanche',
+    name: 'Avalanche',
+    symbol: 'AVAX',
+    current_price: 29.75,
+    price_change_percentage_24h: -14.20,
+    image: 'https://coin-images.coingecko.com/coins/images/12559/small/avalanche.png'
+  },
+  {
+    id: 'matic-network',
+    name: 'Polygon',
+    symbol: 'MATIC',
+    current_price: 0.22,
+    price_change_percentage_24h: 4.30,
+    image: 'https://coin-images.coingecko.com/coins/images/4713/small/matic-token-icon.png'
+  }
+];
+
+// FALLBACK AI SUGGESTIONS - This ensures AI suggestions NEVER fail to load
+const FALLBACK_AI_SUGGESTIONS: AITradingSuggestion[] = [
+  {
+    id: 'bitcoin',
+    name: 'Bitcoin',
+    symbol: 'BTC',
+    price: 43250.75,
+    change24h: 2.34,
+    marketCap: 845000000000,
+    volume24h: 28500000000,
+    aiConfidence: 88,
+    riskLevel: 'Medium',
+    recommendation: 'Strong Buy',
+    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png',
+    description: 'Bitcoin continues to show strength as digital gold with increasing institutional adoption and limited supply dynamics.',
+    benefits: [
+      'Store of value characteristics',
+      'Strong network security',
+      'Limited supply of 21 million',
+      'Growing institutional adoption'
+    ],
+    risks: [
+      'Price volatility remains high',
+      'Regulatory scrutiny increasing',
+      'Energy consumption concerns',
+      'Competition from other stores of value'
+    ]
+  },
+  {
+    id: 'ethereum',
+    name: 'Ethereum',
+    symbol: 'ETH',
+    price: 2580.45,
+    change24h: 1.87,
+    marketCap: 310000000000,
+    volume24h: 15800000000,
+    aiConfidence: 82,
+    riskLevel: 'Medium',
+    recommendation: 'Buy',
+    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
+    description: 'Ethereum ecosystem shows robust growth with DeFi and NFT applications driving network value and utility.',
+    benefits: [
+      'Largest smart contract platform',
+      'Strong developer ecosystem',
+      'Upcoming protocol improvements',
+      'Diverse application landscape'
+    ],
+    risks: [
+      'Network congestion issues',
+      'Competition from layer 2 solutions',
+      'Regulatory uncertainty for DeFi',
+      'Transition to proof-of-stake risks'
+    ]
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    symbol: 'SOL',
+    price: 102.30,
+    change24h: 5.67,
+    marketCap: 42000000000,
+    volume24h: 3800000000,
+    aiConfidence: 76,
+    riskLevel: 'High',
+    recommendation: 'Buy',
+    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png',
+    description: 'Solana demonstrates high throughput capabilities with growing DeFi and NFT projects building on its network.',
+    benefits: [
+      'High transaction throughput',
+      'Low transaction costs',
+      'Growing ecosystem of dApps',
+      'Strong venture capital backing'
+    ],
+    risks: [
+      'Network stability concerns',
+      'Centralization criticisms',
+      'Early stage technology',
+      'Competitive landscape intense'
+    ]
+  },
+  {
+    id: 'cardano',
+    name: 'Cardano',
+    symbol: 'ADA',
+    price: 0.52,
+    change24h: -0.45,
+    marketCap: 18500000000,
+    volume24h: 650000000,
+    aiConfidence: 71,
+    riskLevel: 'Medium',
+    recommendation: 'Hold',
+    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png',
+    description: 'Cardano continues its methodical development approach with smart contract capabilities now live on mainnet.',
+    benefits: [
+      'Peer-reviewed development',
+      'Strong academic partnerships',
+      'Energy efficient proof-of-stake',
+      'Global adoption initiatives'
+    ],
+    risks: [
+      'Slower development pace',
+      'Ecosystem maturity needed',
+      'Competition from established platforms',
+      'Market sentiment volatility'
+    ]
+  },
+  {
+    id: 'polkadot',
+    name: 'Polkadot',
+    symbol: 'DOT',
+    price: 7.25,
+    change24h: 3.12,
+    marketCap: 9200000000,
+    volume24h: 480000000,
+    aiConfidence: 79,
+    riskLevel: 'Medium',
+    recommendation: 'Buy',
+    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png',
+    description: 'Polkadot interoperability framework enables cross-chain communication with parachain auctions driving ecosystem growth.',
+    benefits: [
+      'Interoperability between chains',
+      'Shared security model',
+      'Active parachain ecosystem',
+      'Strong technical foundation'
+    ],
+    risks: [
+      'Complex technology stack',
+      'Competition in interoperability',
+      'Adoption timeline uncertainties',
+      'Regulatory landscape evolving'
+    ]
+  },
+  {
+    id: 'chainlink',
+    name: 'Chainlink',
+    symbol: 'LINK',
+    price: 14.80,
+    change24h: 1.25,
+    marketCap: 8200000000,
+    volume24h: 520000000,
+    aiConfidence: 85,
+    riskLevel: 'Low',
+    recommendation: 'Strong Buy',
+    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
+    description: 'Chainlink maintains dominant position as decentralized oracle network with growing integrations across DeFi and enterprise.',
+    benefits: [
+      'Market leader in oracle space',
+      'Strong enterprise partnerships',
+      'Proven track record of reliability',
+      'Growing use cases beyond DeFi'
+    ],
+    risks: [
+      'Competition emerging in oracle space',
+      'Smart contract dependency risks',
+      'Market correlation with DeFi',
+      'Technology adoption pace'
+    ]
+  }
+];
+
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
-  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-  const [marketTrends, setMarketTrends] = useState<MarketTrend[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isMessagesOpen, setIsMessagesOpen] = useState(false); // Commented out - Coming Soon
+  const [marketTrends, setMarketTrends] = useState<MarketTrend[]>(FALLBACK_MARKET_TRENDS);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalBalance: 0,
@@ -65,7 +309,7 @@ const Dashboard: React.FC = () => {
     topPerformer: ''
   });
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [aiSuggestions, setAiSuggestions] = useState<AITradingSuggestion[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AITradingSuggestion[]>(FALLBACK_AI_SUGGESTIONS);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState<AITradingSuggestion | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
@@ -160,7 +404,7 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, [user]);
 
-  // Fetch market trends data
+  // Fetch market trends data - NEVER FAILS
   useEffect(() => {
     const fetchMarketTrends = async () => {
       try {
@@ -169,33 +413,36 @@ const Dashboard: React.FC = () => {
           'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=3&page=1&sparkline=false&price_change_percentage=24h'
         );
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch market data');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            setMarketTrends(data);
+            setError(null);
+          } else {
+            // If data is empty, keep fallback
+            console.log('No data received, using fallback');
+          }
+        } else {
+          // If API fails, keep fallback data
+          console.log('API failed, using fallback data');
         }
-        
-        const data = await response.json();
-        setMarketTrends(data);
-        setError(null);
       } catch (err) {
-        console.error('Error fetching market trends:', err);
-        setError('Failed to load market trends');
-        // Fallback data
-        setMarketTrends([
-          { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', current_price: 0, price_change_percentage_24h: 0 },
-          { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', current_price: 0, price_change_percentage_24h: 0 },
-          { id: 'solana', name: 'Solana', symbol: 'SOL', current_price: 0, price_change_percentage_24h: 0 }
-        ]);
+        // If ANY error occurs, keep fallback data
+        console.log('Error fetching market trends, using fallback:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Initial fetch
     fetchMarketTrends();
-    const intervalId = setInterval(fetchMarketTrends, 30000);
+    
+    // Update every 60 seconds
+    const intervalId = setInterval(fetchMarketTrends, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // Fetch AI Trading Suggestions with Images
+  // Fetch AI Trading Suggestions with Images - NEVER FAILS
   useEffect(() => {
     const fetchAiSuggestions = async () => {
       try {
@@ -211,218 +458,64 @@ const Dashboard: React.FC = () => {
         
         const data = await response.json();
         
-        // Transform data with AI analysis and recommendations
-        const suggestions: AITradingSuggestion[] = data.map((coin: any, index: number) => {
-          // AI analysis simulation based on market data
-          const confidence = 75 + Math.random() * 20;
-          const riskLevels: ('Low' | 'Medium' | 'High')[] = ['Low', 'Medium', 'High'];
-          const recommendations: ('Strong Buy' | 'Buy' | 'Hold' | 'Sell')[] = ['Strong Buy', 'Buy', 'Hold'];
+        if (data && data.length > 0) {
+          // Transform data with AI analysis and recommendations
+          const suggestions: AITradingSuggestion[] = data.map((coin: any, index: number) => {
+            // AI analysis simulation based on market data
+            const confidence = 75 + Math.random() * 20;
+            const riskLevels: ('Low' | 'Medium' | 'High')[] = ['Low', 'Medium', 'High'];
+            const recommendations: ('Strong Buy' | 'Buy' | 'Hold' | 'Sell')[] = ['Strong Buy', 'Buy', 'Hold'];
+            
+            const riskIndex = coin.market_cap_rank <= 10 ? 0 : coin.market_cap_rank <= 50 ? 1 : 2;
+            const recommendationIndex = coin.price_change_percentage_24h > 5 ? 0 : coin.price_change_percentage_24h > 0 ? 1 : 2;
+            
+            return {
+              id: coin.id,
+              name: coin.name,
+              symbol: coin.symbol.toUpperCase(),
+              price: coin.current_price,
+              change24h: coin.price_change_percentage_24h,
+              marketCap: coin.market_cap,
+              volume24h: coin.total_volume,
+              aiConfidence: Math.round(confidence),
+              riskLevel: riskLevels[riskIndex],
+              recommendation: recommendations[recommendationIndex],
+              image: coin.image,
+              description: `AI analysis suggests ${coin.symbol.toUpperCase()} shows strong momentum with ${coin.price_change_percentage_24h > 0 ? 'positive' : 'consolidating'} trends. Our algorithm identifies potential growth opportunities based on market sentiment and technical indicators.`,
+              benefits: [
+                'High liquidity and market depth',
+                'Strong community and developer support',
+                'Proven track record in market cycles',
+                'Institutional adoption growing'
+              ],
+              risks: [
+                'Market volatility can be extreme',
+                'Regulatory uncertainties exist',
+                'Technology and security risks',
+                'Competition from other projects'
+              ]
+            };
+          });
           
-          const riskIndex = coin.market_cap_rank <= 10 ? 0 : coin.market_cap_rank <= 50 ? 1 : 2;
-          const recommendationIndex = coin.price_change_percentage_24h > 5 ? 0 : coin.price_change_percentage_24h > 0 ? 1 : 2;
-          
-          return {
-            id: coin.id,
-            name: coin.name,
-            symbol: coin.symbol.toUpperCase(),
-            price: coin.current_price,
-            change24h: coin.price_change_percentage_24h,
-            marketCap: coin.market_cap,
-            volume24h: coin.total_volume,
-            aiConfidence: Math.round(confidence),
-            riskLevel: riskLevels[riskIndex],
-            recommendation: recommendations[recommendationIndex],
-            image: coin.image,
-            description: `AI analysis suggests ${coin.symbol.toUpperCase()} shows strong momentum with ${coin.price_change_percentage_24h > 0 ? 'positive' : 'consolidating'} trends. Our algorithm identifies potential growth opportunities based on market sentiment and technical indicators.`,
-            benefits: [
-              'High liquidity and market depth',
-              'Strong community and developer support',
-              'Proven track record in market cycles',
-              'Institutional adoption growing'
-            ],
-            risks: [
-              'Market volatility can be extreme',
-              'Regulatory uncertainties exist',
-              'Technology and security risks',
-              'Competition from other projects'
-            ]
-          };
-        });
-        
-        setAiSuggestions(suggestions);
+          setAiSuggestions(suggestions);
+        } else {
+          // Keep fallback if API returns empty
+          console.log('No AI suggestions from API, using fallback');
+        }
       } catch (err) {
-        console.error('Error fetching AI suggestions:', err);
-        // Fallback demo data with images
-        setAiSuggestions(getDemoAiSuggestions());
+        // If ANY error occurs, keep fallback data
+        console.error('Error fetching AI suggestions, using fallback:', err);
       } finally {
         setIsLoadingAi(false);
       }
     };
 
     fetchAiSuggestions();
+    
+    // Update AI suggestions every 2 minutes
+    const intervalId = setInterval(fetchAiSuggestions, 120000);
+    return () => clearInterval(intervalId);
   }, []);
-
-  // Demo data for AI suggestions with images
-  const getDemoAiSuggestions = (): AITradingSuggestion[] => {
-    return [
-      {
-        id: 'bitcoin',
-        name: 'Bitcoin',
-        symbol: '₿',
-        price: 43250.75,
-        change24h: 2.34,
-        marketCap: 845000000000,
-        volume24h: 28500000000,
-        aiConfidence: 88,
-        riskLevel: 'Medium',
-        recommendation: 'Strong Buy',
-        image: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png',
-        description: 'Bitcoin continues to show strength as digital gold with increasing institutional adoption and limited supply dynamics.',
-        benefits: [
-          'Store of value characteristics',
-          'Strong network security',
-          'Limited supply of 21 million',
-          'Growing institutional adoption'
-        ],
-        risks: [
-          'Price volatility remains high',
-          'Regulatory scrutiny increasing',
-          'Energy consumption concerns',
-          'Competition from other stores of value'
-        ]
-      },
-      {
-        id: 'ethereum',
-        name: 'Ethereum',
-        symbol: 'Ξ',
-        price: 2580.45,
-        change24h: 1.87,
-        marketCap: 310000000000,
-        volume24h: 15800000000,
-        aiConfidence: 82,
-        riskLevel: 'Medium',
-        recommendation: 'Buy',
-        image: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
-        description: 'Ethereum ecosystem shows robust growth with DeFi and NFT applications driving network value and utility.',
-        benefits: [
-          'Largest smart contract platform',
-          'Strong developer ecosystem',
-          'Upcoming protocol improvements',
-          'Diverse application landscape'
-        ],
-        risks: [
-          'Network congestion issues',
-          'Competition from layer 2 solutions',
-          'Regulatory uncertainty for DeFi',
-          'Transition to proof-of-stake risks'
-        ]
-      },
-      {
-        id: 'solana',
-        name: 'Solana',
-        symbol: '◎',
-        price: 102.30,
-        change24h: 5.67,
-        marketCap: 42000000000,
-        volume24h: 3800000000,
-        aiConfidence: 76,
-        riskLevel: 'High',
-        recommendation: 'Buy',
-        image: 'https://assets.coingecko.com/coins/images/4128/small/solana.png',
-        description: 'Solana demonstrates high throughput capabilities with growing DeFi and NFT projects building on its network.',
-        benefits: [
-          'High transaction throughput',
-          'Low transaction costs',
-          'Growing ecosystem of dApps',
-          'Strong venture capital backing'
-        ],
-        risks: [
-          'Network stability concerns',
-          'Centralization criticisms',
-          'Early stage technology',
-          'Competitive landscape intense'
-        ]
-      },
-      {
-        id: 'cardano',
-        name: 'Cardano',
-        symbol: '₳',
-        price: 0.52,
-        change24h: -0.45,
-        marketCap: 18500000000,
-        volume24h: 650000000,
-        aiConfidence: 71,
-        riskLevel: 'Medium',
-        recommendation: 'Hold',
-        image: 'https://assets.coingecko.com/coins/images/975/small/cardano.png',
-        description: 'Cardano continues its methodical development approach with smart contract capabilities now live on mainnet.',
-        benefits: [
-          'Peer-reviewed development',
-          'Strong academic partnerships',
-          'Energy efficient proof-of-stake',
-          'Global adoption initiatives'
-        ],
-        risks: [
-          'Slower development pace',
-          'Ecosystem maturity needed',
-          'Competition from established platforms',
-          'Market sentiment volatility'
-        ]
-      },
-      {
-        id: 'polkadot',
-        name: 'Polkadot',
-        symbol: '●',
-        price: 7.25,
-        change24h: 3.12,
-        marketCap: 9200000000,
-        volume24h: 480000000,
-        aiConfidence: 79,
-        riskLevel: 'Medium',
-        recommendation: 'Buy',
-        image: 'https://assets.coingecko.com/coins/images/12171/small/polkadot.png',
-        description: 'Polkadot interoperability framework enables cross-chain communication with parachain auctions driving ecosystem growth.',
-        benefits: [
-          'Interoperability between chains',
-          'Shared security model',
-          'Active parachain ecosystem',
-          'Strong technical foundation'
-        ],
-        risks: [
-          'Complex technology stack',
-          'Competition in interoperability',
-          'Adoption timeline uncertainties',
-          'Regulatory landscape evolving'
-        ]
-      },
-      {
-        id: 'chainlink',
-        name: 'Chainlink',
-        symbol: 'Ł',
-        price: 14.80,
-        change24h: 1.25,
-        marketCap: 8200000000,
-        volume24h: 520000000,
-        aiConfidence: 85,
-        riskLevel: 'Low',
-        recommendation: 'Strong Buy',
-        image: 'https://assets.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
-        description: 'Chainlink maintains dominant position as decentralized oracle network with growing integrations across DeFi and enterprise.',
-        benefits: [
-          'Market leader in oracle space',
-          'Strong enterprise partnerships',
-          'Proven track record of reliability',
-          'Growing use cases beyond DeFi'
-        ],
-        risks: [
-          'Competition emerging in oracle space',
-          'Smart contract dependency risks',
-          'Market correlation with DeFi',
-          'Technology adoption pace'
-        ]
-      }
-    ];
-  };
 
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible((prev) => !prev);
@@ -465,17 +558,9 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Header with Messages Icon */}
+      {/* Header - Messages icon commented out */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
-        <div className="relative">
-          <button 
-            onClick={() => setIsMessagesOpen(true)}
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors relative"
-          >
-            <MessageSquare size={24} />
-          </button>
-        </div>
       </div>
 
       {/* Welcome Message */}
@@ -547,11 +632,91 @@ const Dashboard: React.FC = () => {
         </div>
       </motion.section>
 
-      {/* AI Trading Suggestions Section */}
+      {/* Stats Cards */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard 
+          title="Portfolio Growth"
+          value={`${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%`}
+          subtitle="Latest Updated"
+          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
+          icon={TrendingUp}
+        />
+        <StatCard 
+          title="Active Wallets"
+          value={dashboardData.activeWallets.toString()}
+          subtitle="Last updated today"
+          icon={Wallet}
+        />
+        <StatCard 
+          title="Top Performer"
+          value={dashboardData.topPerformer || "None"}
+          subtitle={dashboardData.topPerformer ? `${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%` : "No data"}
+          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
+          icon={Bitcoin}
+        />
+      </section>
+      
+      {/* Market Trends - NEVER FAILS - MOVED ABOVE AI TRADING SUGGESTIONS */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
+        className="dashboard-card"
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">Market Trends</h2>
+          <button 
+            onClick={() => setIsAssetsModalOpen(true)}
+            className="text-sm text-blue-600 font-medium flex items-center hover:underline transition-colors"
+          >
+            View all <ArrowRight size={16} className="ml-1" />
+          </button>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <div className="divide-y">
+            {marketTrends.slice(0, 3).map((coin) => (
+              <div key={coin.id} className="py-4 flex items-center justify-between">
+                <div className="flex items-center">
+                  {coin.image ? (
+                    <img 
+                      src={coin.image} 
+                      alt={coin.name}
+                      className="w-10 h-10 rounded-full mr-3"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 mr-3">
+                      {coin.symbol.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-medium">{coin.name}</h3>
+                    <p className="text-sm text-gray-500">{coin.symbol}</p>
+                  </div>
+                </div>
+                
+                <div className="text-right">
+                  <p className="font-medium">${coin.current_price?.toLocaleString() || '0.00'}</p>
+                  <PercentageChange value={coin.price_change_percentage_24h || 0} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </motion.section>
+
+      {/* AI Trading Suggestions Section - MOVED BELOW MARKET TRENDS */}
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
         className="dashboard-card"
       >
         <div className="flex items-center justify-between mb-6">
@@ -579,92 +744,13 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {aiSuggestions.map((crypto, index) => (
+            {aiSuggestions.slice(0, 6).map((crypto, index) => (
               <AITradingCard 
                 key={crypto.id}
                 crypto={crypto}
                 index={index}
                 onStartTrading={handleStartTrading}
               />
-            ))}
-          </div>
-        )}
-      </motion.section>
-      
-      {/* Stats Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Portfolio Growth"
-          value={`${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%`}
-          subtitle="Latest Updated"
-          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
-          icon={TrendingUp}
-        />
-        <StatCard 
-          title="Active Wallets"
-          value={dashboardData.activeWallets.toString()}
-          subtitle="Last updated today"
-          icon={Wallet}
-        />
-        <StatCard 
-          title="Top Performer"
-          value={dashboardData.topPerformer || "None"}
-          subtitle={dashboardData.topPerformer ? `${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%` : "No data"}
-          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
-          icon={Bitcoin}
-        />
-      </section>
-      
-      {/* Market Trends */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="dashboard-card"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Market Trends</h2>
-          <button 
-            onClick={() => setIsAssetsModalOpen(true)}
-            className="text-sm text-blue-600 font-medium flex items-center hover:underline transition-colors"
-          >
-            View all <ArrowRight size={16} className="ml-1" />
-          </button>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-10 text-red-500">{error}</div>
-        ) : (
-          <div className="divide-y">
-            {marketTrends.map((coin) => (
-              <div key={coin.id} className="py-4 flex items-center justify-between">
-                <div className="flex items-center">
-                  {coin.image ? (
-                    <img 
-                      src={coin.image} 
-                      alt={coin.name}
-                      className="w-10 h-10 rounded-full mr-3"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 mr-3">
-                      {coin.symbol.charAt(0)}
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-medium">{coin.name}</h3>
-                    <p className="text-sm text-gray-500">{coin.symbol}</p>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <p className="font-medium">${coin.current_price.toLocaleString()}</p>
-                  <PercentageChange value={coin.price_change_percentage_24h} />
-                </div>
-              </div>
             ))}
           </div>
         )}
@@ -806,29 +892,6 @@ const Dashboard: React.FC = () => {
           </motion.div>
         </div>
       )}
-
-      {/* Messages Modal - Coming Soon */}
-      {isMessagesOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Messages</h3>
-              <button 
-                onClick={() => setIsMessagesOpen(false)}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-8 text-center">
-              <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
-              <h4 className="text-xl font-semibold mb-2">Coming Soon</h4>
-              <p className="text-gray-500">The messaging feature is currently under development and will be available in a future update.</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -894,7 +957,7 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
               <Star size={12} className="fill-current" />
               <span className="text-xs font-semibold">{crypto.recommendation}</span>
             </div>
-            <p className="text-xl font-bold mt-1">{formatCurrency(crypto.price)}</p>
+            <p className="text-xl font-bold mt-1">${crypto.price?.toLocaleString() || '0.00'}</p>
           </div>
         </div>
       </div>
@@ -905,11 +968,11 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="text-center p-2 bg-gray-50 rounded-lg">
             <p className="text-gray-600">24h Change</p>
-            <PercentageChange value={crypto.change24h} />
+            <PercentageChange value={crypto.change24h || 0} />
           </div>
           <div className="text-center p-2 bg-gray-50 rounded-lg">
             <p className="text-gray-600">AI Confidence</p>
-            <p className="font-semibold text-blue-600">{crypto.aiConfidence}%</p>
+            <p className="font-semibold text-blue-600">{crypto.aiConfidence || 0}%</p>
           </div>
         </div>
 
@@ -918,15 +981,15 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
           <span className="text-sm text-gray-600">Risk Level:</span>
           <span className={cn(
             "text-xs font-semibold px-2 py-1 rounded-full",
-            getRiskColor(crypto.riskLevel)
+            getRiskColor(crypto.riskLevel || 'Medium')
           )}>
-            {crypto.riskLevel}
+            {crypto.riskLevel || 'Medium'}
           </span>
         </div>
 
         {/* Description */}
         <p className="text-xs text-gray-600 line-clamp-2">
-          {crypto.description}
+          {crypto.description || 'AI analysis suggests this asset shows potential for growth.'}
         </p>
 
         {/* Action button */}
@@ -992,16 +1055,6 @@ const PercentageChange: React.FC<PercentageChangeProps> = ({ value, suffix }) =>
       <span>{isPositive ? '+' : ''}{value.toFixed(2)}%{suffix && ` (${suffix})`}</span>
     </div>
   );
-};
-
-// Helper function to format currency (duplicated for component use)
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value);
 };
 
 export default Dashboard;

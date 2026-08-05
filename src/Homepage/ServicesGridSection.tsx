@@ -54,20 +54,20 @@ export const ServicesGridSection: React.FC<ServicesGridSectionProps> = ({
   onOpenConsultation,
 }) => {
   return (
-    <section id="services" className="bg-zinc-50 text-zinc-900 py-20 lg:py-28 px-4 sm:px-6 lg:px-8 border-b border-zinc-200 select-none">
+    <section id="services" className="bg-zinc-50 text-zinc-900 py-16 lg:py-20 px-4 sm:px-6 lg:px-8 border-b border-zinc-200 select-none">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Left Sticky / Headline Area */}
-          <div className="lg:col-span-5 space-y-6">
-            <span className="text-zinc-500 font-medium text-sm tracking-wide">
+          <div className="lg:col-span-5 space-y-4">
+            <span className="text-zinc-500 font-medium text-xs tracking-wide">
               Build huge wealth with clear plans and expert guidance
             </span>
 
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-zinc-900 leading-[1.15]">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-zinc-900 leading-[1.25]">
               Tax efficient solutions and ongoing tailored support
             </h2>
 
-            <p className="text-zinc-600 text-base sm:text-lg leading-relaxed">
+            <p className="text-zinc-600 text-sm sm:text-base leading-relaxed">
               Our consultants will make sure that you saved enough money to live
               your lifestyle, unlocking potential for growth profitability that
               proof investment in our mission as advisors!
@@ -75,32 +75,32 @@ export const ServicesGridSection: React.FC<ServicesGridSectionProps> = ({
 
             <button
               onClick={onOpenConsultation}
-              className="mt-4 bg-zinc-900 hover:bg-black active:bg-zinc-800 text-white px-6 py-3.5 rounded-md font-bold text-sm sm:text-base flex items-center gap-2.5 transition-all shadow-md cursor-pointer transform hover:-translate-y-0.5"
+              className="mt-2 bg-zinc-900 hover:bg-black active:bg-zinc-800 text-white px-5 py-2.5 rounded-md font-semibold text-sm sm:text-base flex items-center gap-2 transition-all shadow-md cursor-pointer transform hover:-translate-y-0.5"
             >
               <span>Login Now</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Right Cards Grid */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {SERVICE_ITEMS.map((item) => {
               const IconComp = item.icon;
               return (
                 <div
                   key={item.id}
-                  className="bg-white p-7 sm:p-8 rounded-xl border border-zinc-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                  className="bg-white p-5 sm:p-6 rounded-xl border border-zinc-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
                 >
                   <div>
-                    <div className="w-12 h-12 rounded-lg bg-[#61dafb]/20 border border-[#61dafb]/30 text-[#0284c7] flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                      <IconComp className="w-6 h-6 stroke-[2]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#61dafb]/20 border border-[#61dafb]/30 text-[#0284c7] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                      <IconComp className="w-5 h-5 stroke-[2]" />
                     </div>
 
-                    <h3 className="text-xl font-bold text-zinc-900 mb-3 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 mb-2 tracking-tight">
                       {item.title}
                     </h3>
 
-                    <p className="text-zinc-600 text-sm leading-relaxed">
+                    <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
                       {item.description}
                     </p>
                   </div>

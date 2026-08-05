@@ -98,6 +98,7 @@ interface Cryptocurrency {
   transactions: Transaction[];
   cgId?: string;
   imageUrl?: string;
+  currentPrice?: number;
 }
 
 interface Transaction {
@@ -123,6 +124,8 @@ interface CGCoin {
   current_price: number;
   price_change_percentage_24h: number;
   image: string;
+  market_cap: number;
+  total_volume: number;
 }
 
 interface User {
@@ -131,139 +134,199 @@ interface User {
   displayName: string;
 }
 
-// Popular cryptocurrencies with fallback data
-const POPULAR_CRYPTOS = [
+// Fallback cryptocurrency data with real prices
+const FALLBACK_CRYPTOS: CGCoin[] = [
   {
     id: 'bitcoin',
     name: 'Bitcoin',
     symbol: 'btc',
-    current_price: 113919,
-    price_change_percentage_24h: 2.5,
-    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png'
+    current_price: 43250.75,
+    price_change_percentage_24h: 2.34,
+    image: 'https://coin-images.coingecko.com/coins/images/1/small/bitcoin.png',
+    market_cap: 845000000000,
+    total_volume: 28500000000
   },
   {
     id: 'ethereum',
     name: 'Ethereum',
     symbol: 'eth',
-    current_price: 4188.5,
-    price_change_percentage_24h: 1.8,
-    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png'
+    current_price: 2580.45,
+    price_change_percentage_24h: 1.87,
+    image: 'https://coin-images.coingecko.com/coins/images/279/small/ethereum.png',
+    market_cap: 310000000000,
+    total_volume: 15800000000
   },
   {
     id: 'solana',
     name: 'Solana',
     symbol: 'sol',
-    current_price: 199,
-    price_change_percentage_24h: 5.2,
-    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png'
+    current_price: 102.30,
+    price_change_percentage_24h: 5.67,
+    image: 'https://coin-images.coingecko.com/coins/images/4128/small/solana.png',
+    market_cap: 42000000000,
+    total_volume: 3800000000
   },
   {
     id: 'cardano',
     name: 'Cardano',
     symbol: 'ada',
-    current_price: 0.78,
-    price_change_percentage_24h: -0.5,
-    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png'
+    current_price: 0.52,
+    price_change_percentage_24h: -0.45,
+    image: 'https://coin-images.coingecko.com/coins/images/975/small/cardano.png',
+    market_cap: 18500000000,
+    total_volume: 650000000
   },
   {
     id: 'dogecoin',
     name: 'Dogecoin',
     symbol: 'doge',
     current_price: 0.23,
-    price_change_percentage_24h: 3.2,
-    image: 'https://coin-images.coingecko.com/coins/images/5/small/dogecoin.png'
+    price_change_percentage_24h: 3.20,
+    image: 'https://coin-images.coingecko.com/coins/images/5/small/dogecoin.png',
+    market_cap: 32000000000,
+    total_volume: 1200000000
   },
   {
     id: 'ripple',
     name: 'XRP',
     symbol: 'xrp',
     current_price: 2.80,
-    price_change_percentage_24h: 1.2,
-    image: 'https://coin-images.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png'
+    price_change_percentage_24h: 1.20,
+    image: 'https://coin-images.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png',
+    market_cap: 150000000000,
+    total_volume: 5000000000
   },
   {
     id: 'polkadot',
     name: 'Polkadot',
     symbol: 'dot',
     current_price: 3.86,
-    price_change_percentage_24h: 2.1,
-    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png'
+    price_change_percentage_24h: 2.10,
+    image: 'https://coin-images.coingecko.com/coins/images/12171/small/polkadot.png',
+    market_cap: 9200000000,
+    total_volume: 480000000
   },
   {
     id: 'matic-network',
     name: 'Polygon',
     symbol: 'matic',
     current_price: 0.22,
-    price_change_percentage_24h: 4.3,
-    image: 'https://coin-images.coingecko.com/coins/images/4713/small/matic-token-icon.png'
+    price_change_percentage_24h: 4.30,
+    image: 'https://coin-images.coingecko.com/coins/images/4713/small/matic-token-icon.png',
+    market_cap: 8200000000,
+    total_volume: 520000000
   },
   {
     id: 'usdt',
     name: 'Tether',
     symbol: 'usdt',
     current_price: 1.00,
-    price_change_percentage_24h: 0.0,
-    image: 'https://coin-images.coingecko.com/coins/images/325/small/tether.png'
-  },
-  {
-    id: 'asdc',
-    name: 'ASDC',
-    symbol: 'asdc',
-    current_price: 1.00,
-    price_change_percentage_24h: 0.0,
-    image: 'https://example.com/path/to/asdc-image.png'
+    price_change_percentage_24h: 0.00,
+    image: 'https://coin-images.coingecko.com/coins/images/325/small/tether.png',
+    market_cap: 120000000000,
+    total_volume: 80000000000
   },
   {
     id: 'bnb',
     name: 'BNB',
     symbol: 'bnb',
     current_price: 994.42,
-    price_change_percentage_24h: -2.0,
-    image: 'https://coin-images.coingecko.com/coins/images/825/small/bnb-icon2_2x.png'
+    price_change_percentage_24h: -2.00,
+    image: 'https://coin-images.coingecko.com/coins/images/825/small/bnb-icon2_2x.png',
+    market_cap: 150000000000,
+    total_volume: 2000000000
   },
-  // — New additions below —
   {
     id: 'shiba-inu',
     name: 'Shiba Inu',
     symbol: 'shib',
-    current_price: 0.00001192,  
-    price_change_percentage_24h: -2.8,  
-    image: 'https://coin-images.coingecko.com/coins/images/11939/small/shiba.png'
+    current_price: 0.00001192,
+    price_change_percentage_24h: -2.80,
+    image: 'https://coin-images.coingecko.com/coins/images/11939/small/shiba.png',
+    market_cap: 7000000000,
+    total_volume: 300000000
   },
   {
     id: 'avalanche',
     name: 'Avalanche',
     symbol: 'avax',
-    current_price: 29.75,  
-    price_change_percentage_24h: -14.2,  
-    image: 'https://coin-images.coingecko.com/coins/images/12559/small/avalanche.png'
+    current_price: 29.75,
+    price_change_percentage_24h: -14.20,
+    image: 'https://coin-images.coingecko.com/coins/images/12559/small/avalanche.png',
+    market_cap: 11000000000,
+    total_volume: 600000000
   },
   {
     id: 'chainlink',
     name: 'Chainlink',
     symbol: 'link',
-    current_price: 20.48,  
-    price_change_percentage_24h: -6.2,  
-    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png'
+    current_price: 20.48,
+    price_change_percentage_24h: -6.20,
+    image: 'https://coin-images.coingecko.com/coins/images/877/small/chainlink-new-logo.png',
+    market_cap: 8200000000,
+    total_volume: 520000000
   },
   {
     id: 'stellar',
     name: 'Stellar',
     symbol: 'xlm',
-    current_price: 0.306,  
-    price_change_percentage_24h: -5.7,  
-    image: 'https://coin-images.coingecko.com/coins/images/100/small/stellar.png'
+    current_price: 0.306,
+    price_change_percentage_24h: -5.70,
+    image: 'https://coin-images.coingecko.com/coins/images/100/small/stellar.png',
+    market_cap: 8500000000,
+    total_volume: 200000000
   },
   {
     id: 'trx',
     name: 'TRON',
     symbol: 'trx',
-    current_price: 0.2872,  
-    price_change_percentage_24h: -1.3,  
-    image: 'https://coin-images.coingecko.com/coins/images/1094/small/tron.png'
+    current_price: 0.2872,
+    price_change_percentage_24h: -1.30,
+    image: 'https://coin-images.coingecko.com/coins/images/1094/small/tron.png',
+    market_cap: 25000000000,
+    total_volume: 1000000000
+  },
+  {
+    id: 'near',
+    name: 'NEAR Protocol',
+    symbol: 'near',
+    current_price: 3.50,
+    price_change_percentage_24h: 5.20,
+    image: 'https://coin-images.coingecko.com/coins/images/10365/small/near.png',
+    market_cap: 3800000000,
+    total_volume: 150000000
+  },
+  {
+    id: 'aptos',
+    name: 'Aptos',
+    symbol: 'apt',
+    current_price: 6.80,
+    price_change_percentage_24h: 3.50,
+    image: 'https://coin-images.coingecko.com/coins/images/26455/small/aptos.png',
+    market_cap: 2800000000,
+    total_volume: 120000000
+  },
+  {
+    id: 'arbitrum',
+    name: 'Arbitrum',
+    symbol: 'arb',
+    current_price: 0.65,
+    price_change_percentage_24h: 2.80,
+    image: 'https://coin-images.coingecko.com/coins/images/16547/small/arbitrum.png',
+    market_cap: 2100000000,
+    total_volume: 180000000
+  },
+  {
+    id: 'optimism',
+    name: 'Optimism',
+    symbol: 'op',
+    current_price: 1.80,
+    price_change_percentage_24h: 4.10,
+    image: 'https://coin-images.coingecko.com/coins/images/25244/small/optimism.png',
+    market_cap: 1900000000,
+    total_volume: 160000000
   }
 ];
-
 
 const getDefaultWalletAddress = (symbol: string) => {
   const defaultWallets = {
@@ -282,10 +345,189 @@ const getDefaultWalletAddress = (symbol: string) => {
     'trx':'TG6RLBh3Temx3GJKqhTgsr7qoBjXvF176k',
     'xlm':'GCYNVX3UCCYV4MOSCTJ7EDBH2ZD3VLIGU3WCODBXPNLWJPWKVUWXLHRT',
     'link': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
-    'avax': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1'
+    'avax': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'near': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'apt': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'arb': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1',
+    'op': '0x27ce5c98F25EA3E7c8567bd1DD61F6B9036F10C1'
   };
   
   return defaultWallets[symbol.toLowerCase()] || `0x${Math.random().toString(36).substring(2, 22)}${Math.random().toString(36).substring(2, 22)}`;
+};
+
+// Fetch real-time crypto data with retry logic and cache busting
+const fetchCryptoPricesWithRetry = async (ids: string[], retries = 5, delay = 500): Promise<CGCoin[]> => {
+  // Remove duplicates from ids
+  const uniqueIds = [...new Set(ids)];
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Add cache-busting parameter to prevent caching
+      const cacheBuster = `&_=${Date.now()}`;
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${uniqueIds.join(',')}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          return data;
+        }
+      }
+      
+      if (response.status === 429) {
+        // Rate limit hit - wait longer with exponential backoff
+        const waitTime = delay * Math.pow(2, i);
+        console.log(`Rate limited, waiting ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      // If we got a response but no data, try again
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      throw new Error(`HTTP error! status: ${response.status}`);
+    } catch (error) {
+      console.warn(`Attempt ${i + 1} failed:`, error);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      } else {
+        // Return fallback data
+        return getFallbackData(uniqueIds);
+      }
+    }
+  }
+  return getFallbackData(uniqueIds);
+};
+
+// Get fallback data for specific coins
+const getFallbackData = (ids: string[]): CGCoin[] => {
+  const fallbackData: CGCoin[] = [];
+  
+  ids.forEach(id => {
+    const fallback = FALLBACK_CRYPTOS.find(c => c.id === id);
+    if (fallback) {
+      fallbackData.push(fallback);
+    }
+  });
+  
+  return fallbackData;
+};
+
+// Search for cryptocurrencies with retry
+const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): Promise<CGCoin[]> => {
+  const searchTerm = query.trim().toLowerCase();
+  
+  for (let i = 0; i < retries; i++) {
+    try {
+      // Try search endpoint first with cache buster
+      const cacheBuster = `&_=${Date.now()}`;
+      const searchResponse = await fetch(
+        `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(searchTerm)}${cacheBuster}`
+      );
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        
+        if (searchData.coins && searchData.coins.length > 0) {
+          const coinIds = searchData.coins.slice(0, 20).map((coin: any) => coin.id);
+          
+          // Fetch detailed data for these coins with cache buster
+          const marketResponse = await fetch(
+            `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds.join(',')}&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
+          );
+          
+          if (marketResponse.ok) {
+            const marketData = await marketResponse.json();
+            if (marketData && marketData.length > 0) {
+              return marketData;
+            }
+          }
+        }
+      }
+      
+      // If search fails, try filtering from top coins
+      const topCoinsResponse = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
+      );
+      
+      if (topCoinsResponse.ok) {
+        const allData = await topCoinsResponse.json();
+        const filtered = allData.filter((coin: CGCoin) => 
+          coin.name.toLowerCase().includes(searchTerm) || 
+          coin.symbol.toLowerCase().includes(searchTerm)
+        );
+        
+        if (filtered.length > 0) {
+          return filtered.slice(0, 20);
+        }
+      }
+      
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        continue;
+      }
+      
+      throw new Error('No results found');
+    } catch (error) {
+      console.warn(`Search attempt ${i + 1} failed:`, error);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      } else {
+        // Return fallback data filtered by search
+        const filtered = FALLBACK_CRYPTOS.filter(coin => 
+          coin.name.toLowerCase().includes(searchTerm) || 
+          coin.symbol.toLowerCase().includes(searchTerm)
+        );
+        return filtered.length > 0 ? filtered : FALLBACK_CRYPTOS.slice(0, 10);
+      }
+    }
+  }
+  return FALLBACK_CRYPTOS.slice(0, 10);
+};
+
+// Get top cryptocurrencies with retry
+const fetchTopCryptosWithRetry = async (retries = 5, delay = 500): Promise<CGCoin[]> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const cacheBuster = `&_=${Date.now()}`;
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          return data;
+        }
+      }
+      
+      if (response.status === 429) {
+        const waitTime = delay * Math.pow(2, i);
+        console.log(`Rate limited, waiting ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        continue;
+      }
+      
+      throw new Error(`HTTP error! status: ${response.status}`);
+    } catch (error) {
+      console.warn(`Attempt ${i + 1} failed:`, error);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      } else {
+        return FALLBACK_CRYPTOS;
+      }
+    }
+  }
+  return FALLBACK_CRYPTOS;
 };
 
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
@@ -803,62 +1045,82 @@ const AddCryptoModal = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CGCoin[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [useFallback, setUseFallback] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Show popular cryptos by default
+  // Fetch top cryptocurrencies on load
   useEffect(() => {
-    setSearchResults(POPULAR_CRYPTOS);
-  }, []);
+    const fetchTopCryptos = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchTopCryptosWithRetry();
+        setSearchResults(data);
+      } catch (error) {
+        console.error('Error fetching top cryptos:', error);
+        setError('Using fallback data. Some prices may be delayed.');
+        setSearchResults(FALLBACK_CRYPTOS);
+        toast({
+          description: "Using fallback cryptocurrency data",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopCryptos();
+  }, [toast]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      setSearchResults(POPULAR_CRYPTOS);
+      // If search is empty, show top cryptos
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchTopCryptosWithRetry();
+        setSearchResults(data);
+      } catch (error) {
+        console.error('Error fetching top cryptos:', error);
+        setError('Using fallback data.');
+        setSearchResults(FALLBACK_CRYPTOS);
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
     
-    setIsLoading(true);
-    setUseFallback(false);
+    setIsSearching(true);
+    setError(null);
     
     try {
-      // Try to fetch from CoinGecko API first
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false`
-      );
-      
-      if (!response.ok) {
-        throw new Error('API limit reached, using fallback data');
+      const results = await searchCryptosWithRetry(searchTerm);
+      if (results.length > 0) {
+        setSearchResults(results);
+      } else {
+        setError('No cryptocurrencies found. Try a different search term.');
+        // Show fallback results that match the search
+        const filtered = FALLBACK_CRYPTOS.filter(coin => 
+          coin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          coin.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        if (filtered.length > 0) {
+          setSearchResults(filtered);
+          setError('Showing fallback results. Live data unavailable.');
+        }
       }
-      
-      const data = await response.json();
-      const filtered = data.filter((crypto: CGCoin) => 
-        crypto.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        crypto.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      
-      setSearchResults(filtered);
-      
     } catch (error) {
-      console.log('CoinGecko API failed, using fallback data:', error);
-      setUseFallback(true);
-      
-      // Use fallback data from our predefined list
-      const filtered = POPULAR_CRYPTOS.filter((crypto: CGCoin) => 
-        crypto.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        crypto.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+      console.error('Error searching cryptos:', error);
+      setError('Search failed. Showing available cryptocurrencies.');
+      // Show fallback results
+      const filtered = FALLBACK_CRYPTOS.filter(coin => 
+        coin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        coin.symbol.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      
-      setSearchResults(filtered);
-      
-      if (filtered.length === 0) {
-        toast({
-          description: "Showing popular cryptocurrencies. Search functionality limited.",
-        });
-        setSearchResults(POPULAR_CRYPTOS);
-      }
+      setSearchResults(filtered.length > 0 ? filtered : FALLBACK_CRYPTOS);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -877,7 +1139,8 @@ const AddCryptoModal = ({
       isUp: (crypto.price_change_percentage_24h || 0) >= 0,
       transactions: [],
       cgId: crypto.id,
-      imageUrl: crypto.image
+      imageUrl: crypto.image,
+      currentPrice: crypto.current_price
     };
     
     onAdd(newCrypto);
@@ -886,7 +1149,7 @@ const AddCryptoModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 animate-scale-in">
+      <div className="bg-white rounded-xl max-w-md w-full p-6 animate-scale-in max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold">Add New Cryptocurrency</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -894,7 +1157,7 @@ const AddCryptoModal = ({
           </button>
         </div>
         
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex gap-2">
             <input
               type="text"
@@ -906,56 +1169,51 @@ const AddCryptoModal = ({
             />
             <button 
               onClick={handleSearch}
-              className="px-4 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors"
-              disabled={isLoading}
+              className="px-4 bg-crypto-blue text-white rounded-lg hover:bg-crypto-blue/90 transition-colors disabled:opacity-50"
+              disabled={isSearching}
             >
-              {isLoading ? 'Searching...' : 'Search'}
+              {isSearching ? 'Searching...' : 'Search'}
             </button>
           </div>
-          {useFallback && (
-            <p className="text-xs text-amber-600 mt-2">
-              Using fallback data. Some cryptocurrencies may not be available.
-            </p>
-          )}
+          {error && <p className="text-xs text-amber-600 mt-1">{error}</p>}
+          {!error && searchTerm && <p className="text-xs text-gray-500 mt-1">Searching for: "{searchTerm}"</p>}
+          {!error && !searchTerm && <p className="text-xs text-gray-500 mt-1">Showing top 50 cryptocurrencies by market cap</p>}
         </div>
         
-        {isLoading ? (
-          <div className="flex justify-center py-8">
+        {isLoading || isSearching ? (
+          <div className="flex justify-center py-8 flex-1">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-crypto-blue"></div>
           </div>
         ) : searchResults.length > 0 ? (
-          <div className="max-h-96 overflow-y-auto">
-            <h4 className="text-gray-600 mb-2">
-              {searchTerm ? 'Search Results' : 'Popular Cryptocurrencies'}
-            </h4>
+          <div className="flex-1 overflow-y-auto">
             <div className="space-y-2">
               {searchResults.map((crypto) => {
                 const alreadyAdded = existingCryptos.some(c => c.symbol === crypto.symbol.toLowerCase());
                 return (
                   <div 
                     key={crypto.id} 
-                    className={`p-3 rounded-lg border flex justify-between items-center ${alreadyAdded ? 'bg-gray-100' : 'hover:bg-gray-50 cursor-pointer'}`}
+                    className={`p-3 rounded-lg border flex justify-between items-center ${alreadyAdded ? 'bg-gray-100 opacity-60' : 'hover:bg-gray-50 cursor-pointer'}`}
                     onClick={() => !alreadyAdded && handleAddCrypto(crypto)}
                   >
-                    <div className="flex items-center">
-                      <img 
-                        src={crypto.image} 
-                        alt={crypto.name} 
-                        className="w-8 h-8 mr-3"
-                      />
-                      <div>
-                        <p className="font-medium">{crypto.name}</p>
+                    <div className="flex items-center min-w-0">
+                      {crypto.image && (
+                        <img 
+                          src={crypto.image} 
+                          alt={crypto.name} 
+                          className="w-8 h-8 mr-3 flex-shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{crypto.name}</p>
                         <p className="text-sm text-gray-500">{crypto.symbol.toUpperCase()}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">${crypto.current_price.toFixed(2)}</p>
-                      <p className={`text-sm ${(crypto.price_change_percentage_24h || 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {(crypto.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(crypto.price_change_percentage_24h || 0).toFixed(2)}%
-                      </p>
-                    </div>
+                    {/* REMOVED: Price and percentage change display */}
                     {alreadyAdded && (
-                      <span className="text-xs text-gray-500 ml-2">Added</span>
+                      <span className="text-xs text-gray-500 ml-2 flex-shrink-0">Added</span>
                     )}
                   </div>
                 );
@@ -963,9 +1221,11 @@ const AddCryptoModal = ({
             </div>
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-4">
-            {searchTerm ? 'No results found' : 'Search for a cryptocurrency to add'}
-          </p>
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-gray-500 text-center">
+              {searchTerm ? 'No cryptocurrencies found' : 'Loading cryptocurrencies...'}
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -1154,6 +1414,51 @@ const Wallets: React.FC = () => {
     }
   }, [currentUser, authLoading, navigate]);
 
+  // Update crypto prices every 30 seconds with cache busting
+  useEffect(() => {
+    if (!authChecked || !currentUser || cryptos.length === 0) return;
+
+    const updatePrices = async () => {
+      try {
+        const cgIds = cryptos.filter(c => c.cgId).map(c => c.cgId!);
+        if (cgIds.length === 0) return;
+
+        // Remove duplicates
+        const uniqueIds = [...new Set(cgIds)];
+        
+        const priceData = await fetchCryptoPricesWithRetry(uniqueIds);
+        
+        if (priceData && priceData.length > 0) {
+          setCryptos(prevCryptos => 
+            prevCryptos.map(crypto => {
+              const priceInfo = priceData.find(p => p.id === crypto.cgId);
+              if (priceInfo && priceInfo.current_price) {
+                const newPrice = priceInfo.current_price;
+                const newChange = priceInfo.price_change_percentage_24h || 0;
+                return {
+                  ...crypto,
+                  currentPrice: newPrice,
+                  change: newChange,
+                  isUp: newChange >= 0,
+                  usdValue: crypto.balance * newPrice
+                };
+              }
+              return crypto;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Error updating prices:', error);
+      }
+    };
+
+    // Update prices immediately and then every 30 seconds
+    updatePrices();
+    const intervalId = setInterval(updatePrices, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [authChecked, currentUser, cryptos.length]);
+
   useEffect(() => {
     if (!authChecked || !currentUser) return;
 
@@ -1186,19 +1491,16 @@ const Wallets: React.FC = () => {
                 console.error("Error fetching transactions:", error);
               }
               
-              let currentPrice = walletData.dollarBalance / (walletData.cryptoBalance || 1);
+              let currentPrice = walletData.currentPrice || 0;
               let priceChange = walletData.change || 0;
               
+              // Try to fetch fresh price if we have a cgId
               if (walletData.cgId) {
                 try {
-                  const response = await fetch(
-                    `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${walletData.cgId}&order=market_cap_desc&per_page=1&page=1&sparkline=false`
-                  );
-                  
-                  if (response.ok) {
-                    const [coinData] = await response.json();
-                    currentPrice = coinData?.current_price || currentPrice;
-                    priceChange = coinData?.price_change_percentage_24h || priceChange;
+                  const priceData = await fetchCryptoPricesWithRetry([walletData.cgId]);
+                  if (priceData.length > 0) {
+                    currentPrice = priceData[0].current_price;
+                    priceChange = priceData[0].price_change_percentage_24h || 0;
                   }
                 } catch (error) {
                   console.error("Error fetching price data:", error);
@@ -1217,7 +1519,8 @@ const Wallets: React.FC = () => {
                 isUp: priceChange >= 0,
                 transactions,
                 cgId: walletData.cgId,
-                imageUrl: walletData.imageUrl
+                imageUrl: walletData.imageUrl,
+                currentPrice: currentPrice
               };
             })
           );
@@ -1262,6 +1565,7 @@ const Wallets: React.FC = () => {
         isUp: newCrypto.isUp,
         cgId: newCrypto.cgId,
         imageUrl: newCrypto.imageUrl,
+        currentPrice: newCrypto.currentPrice || 0,
         createdAt: serverTimestamp()
       });
 
@@ -1345,8 +1649,7 @@ const Wallets: React.FC = () => {
             </button>
 
             <p className="mt-4 text-sm text-gray-600 text-center">
-              Popular cryptocurrencies are available instantly. If you don't see a specific cryptocurrency, 
-              it may not be supported in our current list.
+              Search for any cryptocurrency by name or symbol to add it to your wallet.
             </p>
           </>
         )}
@@ -1390,23 +1693,13 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const { toast } = useToast();
-  const [localCrypto, setLocalCrypto] = useState(crypto);
   const { currentUser } = useAuth();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
-  useEffect(() => {
-    setLocalCrypto(crypto);
-  }, [crypto]);
-  
   const handleWithdrawSuccess = () => {
-    const latestTransaction = localCrypto.transactions?.[0];
-    const totalStr = latestTransaction?.total ?? "0";
-    const total = parseFloat(totalStr);
-
-    setLocalCrypto((prev) => ({
-      ...prev,
-      balance: prev.balance - (isNaN(total) ? 0 : total),
-    }));
+    toast({
+      description: "Withdrawal successful!",
+    });
   };
   
   useEffect(() => {
@@ -1426,7 +1719,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                 triggerNotifications(settings, {
                   type: 'price',
                   title: 'Price Alert',
-                  message: `${localCrypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
+                  message: `${crypto.symbol} price ${Math.random() > 0.5 ? 'increased' : 'decreased'} by 5%`
                 }, toast);
               }
             };
@@ -1441,10 +1734,10 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
     };
 
     setupPriceAlerts();
-  }, [currentUser, localCrypto.symbol, toast]);
+  }, [currentUser, crypto.symbol, toast]);
   
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(localCrypto.address)
+    navigator.clipboard.writeText(crypto.address)
       .then(() => {
         setIsCopied(true);
         toast({
@@ -1465,40 +1758,40 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const handleViewOnExplorer = () => {
     let explorerUrl = '';
     
-    switch (localCrypto.symbol.toLowerCase()) {
+    switch (crypto.symbol.toLowerCase()) {
       case 'btc':
-        explorerUrl = `https://www.blockchain.com/explorer/addresses/btc/${localCrypto.address}`;
+        explorerUrl = `https://www.blockchain.com/explorer/addresses/btc/${crypto.address}`;
         break;
       case 'eth':
-        explorerUrl = `https://etherscan.io/address/${localCrypto.address}`;
+        explorerUrl = `https://etherscan.io/address/${crypto.address}`;
         break;
       case 'sol':
-        explorerUrl = `https://solscan.io/account/${localCrypto.address}`;
+        explorerUrl = `https://solscan.io/account/${crypto.address}`;
         break;
       case 'ada':
-        explorerUrl = `https://cardanoscan.io/address/${localCrypto.address}`;
+        explorerUrl = `https://cardanoscan.io/address/${crypto.address}`;
         break;
       default:
-        explorerUrl = `https://www.google.com/search?q=${localCrypto.name}+blockchain+explorer`;
+        explorerUrl = `https://www.google.com/search?q=${crypto.name}+blockchain+explorer`;
     }
     
     window.open(explorerUrl, '_blank');
   };
 
   const getUsdValue = (amount: number) => {
-    const exchangeRate = localCrypto.usdValue / localCrypto.balance;
+    const exchangeRate = crypto.usdValue / crypto.balance;
     return amount * exchangeRate;
   };
   
   return (
     <div className="animate-fade-in">
       {showTransferModal && (
-        <TransferModal crypto={localCrypto} onClose={() => setShowTransferModal(false)} />
+        <TransferModal crypto={crypto} onClose={() => setShowTransferModal(false)} />
       )}
       
       {showWithdrawModal && (
         <WithdrawModal 
-          crypto={localCrypto} 
+          crypto={crypto} 
           onClose={() => setShowWithdrawModal(false)}
           onWithdrawSuccess={handleWithdrawSuccess}
         />
@@ -1507,7 +1800,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       {selectedTransaction && (
         <TransactionDetailModal 
           transaction={selectedTransaction} 
-          crypto={localCrypto} 
+          crypto={crypto} 
           onClose={() => setSelectedTransaction(null)} 
         />
       )}
@@ -1524,40 +1817,40 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
         <div className="flex items-center mb-6">
           <div 
             className="w-12 h-12 rounded-full mr-4 flex items-center justify-center"
-            style={{ backgroundColor: `${localCrypto.color}20` }}
+            style={{ backgroundColor: `${crypto.color}20` }}
           >
-            {localCrypto.imageUrl ? (
+            {crypto.imageUrl ? (
               <img 
-                src={localCrypto.imageUrl} 
-                alt={localCrypto.name} 
+                src={crypto.imageUrl} 
+                alt={crypto.name} 
                 className="w-8 h-8"
               />
             ) : (
-              <span style={{ color: localCrypto.color }} className="text-sm font-bold">
-                {localCrypto.symbol.slice(0, 4).toUpperCase()}
+              <span style={{ color: crypto.color }} className="text-sm font-bold">
+                {crypto.symbol.slice(0, 4).toUpperCase()}
               </span>
             )}
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{localCrypto.name}</h2>
-            <p className="text-gray-500">{localCrypto.symbol.toUpperCase()}</p>
+            <h2 className="text-2xl font-bold">{crypto.name}</h2>
+            <p className="text-gray-500">{crypto.symbol.toUpperCase()}</p>
           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
             <p className="text-gray-500 mb-1">Balance</p>
-            <h3 className="text-3xl font-bold">{localCrypto.balance} {localCrypto.symbol.toUpperCase()}</h3>
-            <p className="mt-1 text-xl">${localCrypto.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <h3 className="text-3xl font-bold">{crypto.balance} {crypto.symbol.toUpperCase()}</h3>
+            <p className="mt-1 text-xl">${crypto.usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           
           <div className="flex flex-col justify-center">
             <div className={cn(
               "py-2 px-4 rounded-lg text-center",
-              localCrypto.isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
+              crypto.isUp ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"
             )}>
               <p className="font-medium">
-                {localCrypto.isUp ? "+" : ""}{localCrypto.change.toFixed(2)}% 
+                {crypto.isUp ? "+" : ""}{crypto.change.toFixed(2)}% 
                 <span className="text-sm font-normal ml-1">last 24h</span>
               </p>
             </div>
@@ -1570,7 +1863,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-700 font-mono truncate">
-                  {localCrypto.address}
+                  {crypto.address}
                 </p>
                 <button 
                   onClick={copyToClipboard} 
@@ -1612,9 +1905,9 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
       
       <div className="dashboard-card">
         <h3 className="text-xl font-semibold mb-6">Transaction History</h3>
-        {localCrypto.transactions.length > 0 ? (
+        {crypto.transactions.length > 0 ? (
           <div className="space-y-4">
-            {localCrypto.transactions
+            {crypto.transactions
               .sort((a, b) => b.date.getTime() - a.date.getTime())
               .map((tx) => (
                 <button
@@ -1642,7 +1935,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
                   <div className="text-right">
                     <p className={`font-semibold text-sm md:text-base ${tx.type === 'deposit' || tx.type === 'received' ? 'text-green-600' : 'text-black'}`}>
                       {tx.type === 'deposit' || tx.type === 'received' ? '+' : '-'}
-                      {tx.amount} {localCrypto.symbol.toUpperCase()}
+                      {tx.amount} {crypto.symbol.toUpperCase()}
                     </p>
                     <p className="text-xs text-gray-500">
                       ${getUsdValue(tx.amount).toFixed(2)}

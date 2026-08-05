@@ -48,40 +48,40 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
 
       {/* Main Hero Content Container */}
       <div className="relative z-10 max-w-7xl mx-auto w-full my-auto py-12 flex flex-col justify-center">
-        {/* Top Badge: // Guaranteed ROI Crypto Platform */}
+        {/* Top Badge: // Preferred Automated Trading Platform */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-[#61dafb]/30 w-fit mb-6 shadow-[0_0_15px_rgba(97,218,251,0.2)]"
         >
-          <span className="text-[#61dafb] font-bold text-sm tracking-wider">//</span>
-          <span className="text-xs sm:text-sm font-semibold text-white tracking-wide font-['Poppins']">
-            Guaranteed ROI Crypto Platform
+          <span className="text-[#61dafb] font-bold text-xs tracking-wider">//</span>
+          <span className="text-[10px] sm:text-xs font-semibold text-white tracking-wide font-['Poppins']">
+            Preferred Automated Trading Platform
           </span>
         </motion.div>
 
-        {/* Main Headline */}
+        {/* Main Headline - Reduced font sizes */}
         <motion.h1
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white max-w-5xl leading-[1.08] font-['Poppins'] mb-8 drop-shadow-md"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white max-w-5xl leading-[1.15] font-['Poppins'] mb-6 drop-shadow-md"
         >
-          Multiply Capital with <br className="hidden sm:block" />
-          <span className="text-[#61dafb] drop-shadow-[0_0_25px_rgba(97,218,251,0.4)]">Guaranteed ROI</span>
+          Your preferred automated <br className="hidden sm:block" />
+          <span className="text-[#61dafb] drop-shadow-[0_0_25px_rgba(97,218,251,0.4)]">trading platform to grow</span>
         </motion.h1>
 
         {/* Subtitle & Inline Video Container Row */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12 max-w-5xl">
-          {/* Subtitle Paragraph */}
+          {/* Subtitle Paragraph - Reduced font size */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.35 }}
-            className="text-base sm:text-lg text-gray-200 leading-relaxed font-light max-w-lg font-['Poppins'] drop-shadow"
+            className="text-sm sm:text-base text-gray-200 leading-relaxed font-light max-w-lg font-['Poppins'] drop-shadow"
           >
-            Paycoin is the premier cryptocurrency platform. The more you invest, the higher your earnings — backed by automated ROI staking pools and transparent yields.
+            Over 200,000 companies and individuals around the world trust Paycoin to grow their revenue. Fully automated trading launched in minutes.
           </motion.p>
 
           {/* INLINE VIDEO CONTAINER (Auto-plays on load) */}
@@ -89,10 +89,10 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
-            className="group relative flex items-center gap-4 p-2 rounded-full bg-black/70 backdrop-blur-xl border border-[#61dafb]/40 pr-5 shadow-2xl shadow-[#61dafb]/20"
+            className="group relative flex items-center gap-3 p-1.5 rounded-full bg-black/70 backdrop-blur-xl border border-[#61dafb]/40 pr-4 shadow-2xl shadow-[#61dafb]/20"
           >
-            {/* Inline Video Player Box */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border border-[#61dafb]/40 shrink-0 bg-black">
+            {/* Inline Video Player Box - Smaller */}
+            <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden border border-[#61dafb]/40 shrink-0 bg-black">
               <video
                 ref={videoRef}
                 src={inlineVideoSrc}
@@ -104,30 +104,30 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
               />
             </div>
 
-            {/* Text / Status Indicator */}
+            {/* Text / Status Indicator - Smaller */}
             <div className="flex flex-col text-left">
-              <span className="text-xs font-semibold text-white tracking-wide">
+              <span className="text-[10px] sm:text-xs font-semibold text-white tracking-wide">
                 Live ROI Dashboard
               </span>
-              <span className="text-[11px] text-[#61dafb] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#61dafb] animate-ping" />
+              <span className="text-[10px] text-[#61dafb] flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-[#61dafb] animate-ping" />
                 Automated Yield Stream Active
               </span>
             </div>
 
-            {/* Audio toggle button */}
+            {/* Audio toggle button - Smaller */}
             <button
               onClick={toggleMute}
-              className="p-1.5 rounded-full bg-white/10 hover:bg-[#61dafb] hover:text-black text-gray-300 transition-colors ml-1"
+              className="p-1 rounded-full bg-white/10 hover:bg-[#61dafb] hover:text-black text-gray-300 transition-colors ml-1"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#61dafb]" />}
+              {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3 text-[#61dafb]" />}
             </button>
           </motion.div>
         </div>
       </div>
 
-      {/* Floating Circular Action Button */}
+      {/* Floating Circular Action Button - Smaller */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -136,16 +136,16 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
       >
         <button
           onClick={onOpenQuote}
-          className="group relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center hover:bg-[#4faee3] transition-all duration-500 shadow-2xl shadow-[#61dafb]/40 hover:scale-110 active:scale-95 cursor-pointer"
+          className="group relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center hover:bg-[#4faee3] transition-all duration-500 shadow-2xl shadow-[#61dafb]/40 hover:scale-110 active:scale-95 cursor-pointer"
           aria-label="Login Now"
           title="Login Now"
         >
-          <ArrowUpRight className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5] transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+          <ArrowUpRight className="w-6 h-6 sm:w-8 sm:h-8 stroke-[2.5] transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
           <span className="absolute inset-0 rounded-full border-2 border-[#61dafb]/50 animate-ping pointer-events-none" />
         </button>
       </motion.div>
 
-      {/* Floating "Paycoin Platform" Card at Bottom Right */}
+      {/* Floating "Paycoin Platform" Card at Bottom Right - Smaller */}
       <AnimatePresence>
         {showPurchaseWidget && (
           <motion.div
@@ -153,32 +153,32 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 50 }}
             transition={{ duration: 0.4 }}
-            className="fixed bottom-12 right-6 z-40 hidden sm:flex items-center gap-3 p-2.5 pr-4 rounded-2xl bg-[#121824]/90 backdrop-blur-xl border border-white/15 shadow-2xl hover:border-[#61dafb]/40 transition-all group"
+            className="fixed bottom-12 right-6 z-40 hidden sm:flex items-center gap-2 p-2 pr-3 rounded-xl bg-[#121824]/90 backdrop-blur-xl border border-white/15 shadow-2xl hover:border-[#61dafb]/40 transition-all group"
           >
-            <div className="w-12 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-[#61dafb]/10 flex items-center justify-center text-[#61dafb] font-bold">
+            <div className="w-8 h-8 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-[#61dafb]/10 flex items-center justify-center text-[#61dafb] font-bold text-sm">
               P
             </div>
             <div className="flex flex-col">
-              <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-white flex items-center gap-1.5">
                 Paycoin Ecosystem
-                <ExternalLink className="w-3 h-3 text-[#61dafb]" />
+                <ExternalLink className="w-2.5 h-2.5 text-[#61dafb]" />
               </span>
-              <span className="text-[10px] text-gray-400">Guaranteed Crypto ROI</span>
+              <span className="text-[9px] text-gray-400">Guaranteed Crypto ROI</span>
             </div>
             <button
               onClick={() => setShowPurchaseWidget(false)}
-              className="ml-2 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+              className="ml-1 text-gray-400 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"
               aria-label="Close widget"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Paycoin Status Badge at Bottom Right */}
-      <div className="fixed bottom-3 right-4 z-40 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-[#61dafb]/20 text-[11px] font-medium text-gray-200 shadow-lg">
-        <span className="w-2 h-2 rounded-full bg-[#61dafb] animate-pulse" />
+      {/* Paycoin Status Badge at Bottom Right - Smaller */}
+      <div className="fixed bottom-3 right-4 z-40 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-[#61dafb]/20 text-[10px] font-medium text-gray-200 shadow-lg">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#61dafb] animate-pulse" />
         Paycoin Live ROI Engine Active
       </div>
     </section>
