@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ArrowUpRight, Play, Pause, X, ExternalLink, Volume2, VolumeX } from 'lucide-react';
+import { ArrowUpRight, X, ExternalLink, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 
 interface HeroProps {
@@ -7,7 +7,6 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showPurchaseWidget, setShowPurchaseWidget] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -17,22 +16,14 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
   const backgroundScale = useTransform(scrollY, [0, 1000], [1.08, 1.2]);
 
   const heroBg = 'https://kelechieze.wordpress.com/wp-content/uploads/2026/08/chatgpt-image-aug-4-2026-08_57_44-pm.png';
-  const interiorThumb = '/src/assets/images/pcoin_about_consulting_1785872845989.jpg';
-  // High quality crypto technology preview video
-  const inlineVideoSrc = 'https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-charts-and-data-41584-large.mp4';
+  const inlineVideoSrc = '/cryptovideo.mp4';
 
-  const toggleInlineVideo = (e: React.MouseEvent) => {
+  // Toggle mute only
+  const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isPlaying) {
-      if (videoRef.current) videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      if (videoRef.current) {
-        videoRef.current.play().catch(() => {
-          // Fallback if autoplay restricted
-        });
-      }
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
     }
   };
 
@@ -93,80 +84,45 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
             Paycoin is the premier cryptocurrency platform. The more you invest, the higher your earnings — backed by automated ROI staking pools and transparent yields.
           </motion.p>
 
-          {/* INLINE VIDEO CONTAINER (Plays video right inside container when clicked) */}
+          {/* INLINE VIDEO CONTAINER (Auto-plays on load) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
-            className={`group relative flex items-center gap-4 p-2 rounded-full bg-black/70 backdrop-blur-xl border transition-all duration-300 w-fit ${
-              isPlaying
-                ? 'border-[#61dafb] bg-black/90 pr-5 shadow-2xl shadow-[#61dafb]/20'
-                : 'border-white/30 hover:border-[#61dafb]/60 pr-5 cursor-pointer'
-            }`}
+            className="group relative flex items-center gap-4 p-2 rounded-full bg-black/70 backdrop-blur-xl border border-[#61dafb]/40 pr-5 shadow-2xl shadow-[#61dafb]/20"
           >
             {/* Inline Video Player Box */}
-            <div
-              onClick={toggleInlineVideo}
-              className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border border-[#61dafb]/40 shrink-0 cursor-pointer bg-black"
-            >
+            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border border-[#61dafb]/40 shrink-0 bg-black">
               <video
                 ref={videoRef}
                 src={inlineVideoSrc}
                 loop
                 muted={isMuted}
                 playsInline
-                className={`w-full h-full object-cover transition-opacity duration-300 ${
-                  isPlaying ? 'opacity-100 scale-105' : 'opacity-80'
-                }`}
-                poster={interiorThumb}
+                autoPlay
+                className="w-full h-full object-cover scale-105"
               />
-
-              {!isPlaying && (
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                  <Play className="w-5 h-5 text-[#61dafb] fill-current ml-0.5" />
-                </div>
-              )}
             </div>
 
-            {/* Play/Pause & Sound Controls within capsule */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleInlineVideo}
-                className="w-10 h-10 rounded-full bg-white/20 border border-[#61dafb]/40 hover:bg-[#61dafb] hover:border-[#61dafb] text-white hover:text-black flex items-center justify-center transition-all duration-300 shadow-md shrink-0 cursor-pointer"
-                aria-label={isPlaying ? 'Pause live trading stream' : 'Play live trading stream'}
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4 fill-current" />
-                ) : (
-                  <Play className="w-4 h-4 fill-current ml-0.5" />
-                )}
-              </button>
-
-              {/* Text / Status Indicator */}
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-semibold text-white tracking-wide">
-                  {isPlaying ? 'Live ROI Dashboard' : 'Watch ROI Trading Stream'}
-                </span>
-                <span className="text-[11px] text-[#61dafb] flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full bg-[#61dafb] ${isPlaying ? 'animate-ping' : ''}`} />
-                  {isPlaying ? 'Automated Yield Stream' : 'Click to Play Stream'}
-                </span>
-              </div>
-
-              {/* Audio toggle button when playing inline */}
-              {isPlaying && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMuted(!isMuted);
-                  }}
-                  className="p-1.5 rounded-full bg-white/10 hover:bg-[#61dafb] hover:text-black text-gray-300 transition-colors ml-1"
-                  title={isMuted ? 'Unmute' : 'Mute'}
-                >
-                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#61dafb]" />}
-                </button>
-              )}
+            {/* Text / Status Indicator */}
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-semibold text-white tracking-wide">
+                Live ROI Dashboard
+              </span>
+              <span className="text-[11px] text-[#61dafb] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#61dafb] animate-ping" />
+                Automated Yield Stream Active
+              </span>
             </div>
+
+            {/* Audio toggle button */}
+            <button
+              onClick={toggleMute}
+              className="p-1.5 rounded-full bg-white/10 hover:bg-[#61dafb] hover:text-black text-gray-300 transition-colors ml-1"
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#61dafb]" />}
+            </button>
           </motion.div>
         </div>
       </div>
@@ -179,7 +135,7 @@ export const Hero: React.FC<HeroProps> = ({ onOpenQuote }) => {
         className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 z-20 flex-col items-center"
       >
         <button
-          onClick={onOpenQuote} // Call the prop
+          onClick={onOpenQuote}
           className="group relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center hover:bg-[#4faee3] transition-all duration-500 shadow-2xl shadow-[#61dafb]/40 hover:scale-110 active:scale-95 cursor-pointer"
           aria-label="Login Now"
           title="Login Now"

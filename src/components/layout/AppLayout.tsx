@@ -249,10 +249,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const handleContactSupport = (useGmail: boolean) => {
     if (useGmail) {
       const subject = encodeURIComponent("Support Request");
-      const body = encodeURIComponent("Hello PayCoin Support Team,\n\nI need assistance with:");
-      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=paycoincustomercare@gmail.com&su=${subject}&body=${body}`, '_blank');
+      const body = encodeURIComponent("Hello PayCoiyn Support Team,\n\nI need assistance with:");
+      window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=support@paycoiyn.com&su=${subject}&body=${body}`, '_blank');
     } else {
-      window.location.href = 'mailto:paycoincustomercare@gmail.com';
+      window.location.href = 'mailto:support@paycoiyn.com';
     }
     setContactModalOpen(false);
   };
@@ -347,7 +347,7 @@ const Sidebar: React.FC<{
             className="flex items-center space-x-2"
           >
             <div className="w-8 h-8 rounded-full bg-crypto-blue text-white flex items-center justify-center">P</div>
-            <span className="font-semibold text-xl">PayCoin</span>
+            <span className="font-semibold text-xl">PayCoiyn</span>
           </a>
           {isMobile && (
             <button onClick={toggle} className={cn(

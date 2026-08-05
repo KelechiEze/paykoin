@@ -83,7 +83,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenQuote }) => {
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-[#61dafb] shrink-0" />
-                <span>support@paycoin-roi.com</span>
+                <span>support@paycoiyn.com</span>
               </li>
             </ul>
           </div>
