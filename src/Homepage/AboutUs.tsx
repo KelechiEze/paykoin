@@ -10,11 +10,11 @@ export const AboutUs: React.FC<AboutUsProps> = ({ onOpenQuote }) => {
   // Use public folder path - remove '/src/assets/images/' prefix
   const consultationImg = '/pcoin_about_consulting_1785872845989.jpg';
 
-  const stats = [
-    { label: 'Guaranteed ROI Yield Rate', value: '15% - 45%' },
-    { label: 'Active Crypto Investors', value: '5k+' },
-    { label: 'Total ROI Payouts Processed', value: '$8M+' },
-  ];
+const stats = [
+  { label: 'Consistent Weekly Returns', value: '5% – 15%' },
+  { label: 'Active Crypto Investors', value: '5k+' },
+  { label: 'Total ROI Payouts Processed', value: '$8M+' },
+];
 
   return (
     <section id="about" className="bg-white text-gray-900 py-16 sm:py-20 px-4 sm:px-6 lg:px-12 font-['Poppins']">
