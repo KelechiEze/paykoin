@@ -78,10 +78,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenQuote }) => {
                 <span>Financial District, Suite 400, New York, NY 10005</span>
               </li>
               <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-[#61dafb] shrink-0" />
-                <span>+1 (800) PCOIN-ROI</span>
-              </li>
-              <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-[#61dafb] shrink-0" />
                 <span>support@paycoiyn.com</span>
               </li>

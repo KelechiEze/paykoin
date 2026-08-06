@@ -49,7 +49,7 @@ const INVESTMENT_PACKAGES = [
     name: 'Professional Tier',
     range: '$8,000 – $25,000',
     subtext: 'Designed for serious investors seeking high-tier weekly algorithmic trading yields and dedicated strategy.',
-    priceDisplay: '$8,000 – $10,000',
+    priceDisplay: '$8,000 – $25,000',
     unit: 'Deposit Range',
     roi: '10% Profit / Week',
     profitRate: '10%',
