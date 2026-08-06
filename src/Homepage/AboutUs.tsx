@@ -12,8 +12,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({ onOpenQuote }) => {
 
   const stats = [
     { label: 'Guaranteed ROI Yield Rate', value: '15% - 45%' },
-    { label: 'Active Crypto Investors', value: '12k+' },
-    { label: 'Total ROI Payouts Processed', value: '$45M+' },
+    { label: 'Active Crypto Investors', value: '5k+' },
+    { label: 'Total ROI Payouts Processed', value: '$8M+' },
   ];
 
   return (
