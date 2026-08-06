@@ -4,19 +4,21 @@ import {
   Eye, EyeOff, TrendingUp, TrendingDown, Activity, 
   ArrowRight, DollarSign, Bitcoin, Wallet, 
   Send, X, Bell, Search, Loader, Brain, AlertTriangle,
-  Star, Zap, Target, Check, ArrowUpRight
+  Star, Zap, Target, Check, ArrowUpRight, Coins, 
+  PiggyBank, ArrowLeftRight, Play, Pause, RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-// import CryptoChart from '@/components/layout/CryptoChart';
 import CryptoAssetsModal from '@/components/layout/CryptoAssetsModal';
 import { auth, db } from '@/firebase';
 import { 
   doc, getDoc, onSnapshot, collection, 
   addDoc, query, where, orderBy, serverTimestamp,
-  updateDoc, arrayUnion, arrayRemove, getDocs, setDoc
+  updateDoc, arrayUnion, arrayRemove, getDocs, setDoc,
+  runTransaction
 } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import TransferFundsModal from '@/components/layout/TransferFundsModal';
 
 interface MarketTrend {
   id: string;
@@ -29,9 +31,20 @@ interface MarketTrend {
 
 interface DashboardData {
   totalBalance: number;
+  depositBalance: number;
+  tradingBalance: number;
+  tradingProfit: number;
   portfolioGrowth: number;
   activeWallets: number;
   topPerformer: string;
+  topPerformerImage?: string;
+  topPerformerSymbol?: string;
+  topPerformerChange?: number;
+  isTradingActive: boolean;
+  tradingStartDate?: Date;
+  lastProfitUpdate?: Date;
+  weeklyProfitRate?: number;
+  currentTradingAmount?: number;
 }
 
 interface AITradingSuggestion {
@@ -51,7 +64,16 @@ interface AITradingSuggestion {
   image?: string;
 }
 
-// FALLBACK MARKET DATA - This ensures market trends NEVER fail to load
+// Trading profit tiers
+const getTradingProfitRate = (amount: number): number => {
+  if (amount >= 100000) return 13; // 10-13% for $100,000+
+  if (amount >= 20000) return 10; // 10% for $20,000 - $100,000
+  if (amount >= 5000) return 7; // 7% for $5,000 - $20,000
+  if (amount >= 500) return 5; // 5% for $500 - $5,000
+  return 0;
+};
+
+// FALLBACK MARKET DATA
 const FALLBACK_MARKET_TRENDS: MarketTrend[] = [
   {
     id: 'bitcoin',
@@ -135,7 +157,7 @@ const FALLBACK_MARKET_TRENDS: MarketTrend[] = [
   }
 ];
 
-// FALLBACK AI SUGGESTIONS - This ensures AI suggestions NEVER fail to load
+// FALLBACK AI SUGGESTIONS
 const FALLBACK_AI_SUGGESTIONS: AITradingSuggestion[] = [
   {
     id: 'bitcoin',
@@ -295,24 +317,264 @@ const FALLBACK_AI_SUGGESTIONS: AITradingSuggestion[] = [
   }
 ];
 
+// Helper function to initialize or update user balances
+const initializeUserBalances = async (userId: string) => {
+  try {
+    const dashboardRef = doc(db, 'users', userId, 'dashboard', 'stats');
+    const docSnap = await getDoc(dashboardRef);
+    
+    if (!docSnap.exists()) {
+      // New user - initialize all balances to 0
+      const initialData: DashboardData = {
+        totalBalance: 0,
+        depositBalance: 0,
+        tradingBalance: 0,
+        tradingProfit: 0,
+        portfolioGrowth: 0,
+        activeWallets: 0,
+        topPerformer: '',
+        topPerformerImage: '',
+        topPerformerSymbol: '',
+        topPerformerChange: 0,
+        isTradingActive: false,
+        weeklyProfitRate: 0,
+        currentTradingAmount: 0
+      };
+      await setDoc(dashboardRef, initialData);
+      console.log('New user balances initialized to 0');
+      return;
+    }
+    
+    // Existing user - check and add missing fields
+    const data = docSnap.data();
+    const updates: any = {};
+    
+    // Preserve existing totalBalance, or set to 0 if missing
+    if (data.totalBalance === undefined) updates.totalBalance = 0;
+    if (data.depositBalance === undefined) updates.depositBalance = data.totalBalance || 0;
+    if (data.tradingBalance === undefined) updates.tradingBalance = 0;
+    if (data.tradingProfit === undefined) updates.tradingProfit = 0;
+    if (data.isTradingActive === undefined) updates.isTradingActive = false;
+    if (data.weeklyProfitRate === undefined) updates.weeklyProfitRate = 0;
+    if (data.currentTradingAmount === undefined) updates.currentTradingAmount = 0;
+    if (data.topPerformerImage === undefined) updates.topPerformerImage = '';
+    if (data.topPerformerSymbol === undefined) updates.topPerformerSymbol = '';
+    if (data.topPerformerChange === undefined) updates.topPerformerChange = 0;
+    
+    // Update only if there are missing fields
+    if (Object.keys(updates).length > 0) {
+      await updateDoc(dashboardRef, updates);
+      console.log('Existing user balances updated with missing fields');
+    }
+  } catch (error) {
+    console.error('Error initializing user balances:', error);
+  }
+};
+
+// Helper function to update dashboard stats from wallets
+const updateDashboardStats = async (userId: string) => {
+  try {
+    const walletsSnapshot = await getDocs(collection(db, 'users', userId, 'wallets'));
+    
+    let totalBalance = 0;
+    let activeWallets = 0;
+    let topPerformer = '';
+    let topPerformerImage = '';
+    let topPerformerSymbol = '';
+    let topPerformerChange = -Infinity;
+    
+    for (const walletDoc of walletsSnapshot.docs) {
+      const walletData = walletDoc.data();
+      const balance = walletData.cryptoBalance || 0;
+      const currentPrice = walletData.currentPrice || 0;
+      const usdValue = balance * currentPrice;
+      
+      totalBalance += usdValue;
+      
+      if (balance > 0) activeWallets++;
+      
+      // Track top performer based on price change
+      const change = walletData.change || 0;
+      if (change > topPerformerChange && balance > 0) {
+        topPerformerChange = change;
+        topPerformer = walletData.name || '';
+        topPerformerImage = walletData.imageUrl || '';
+        topPerformerSymbol = walletData.symbol || '';
+      }
+    }
+    
+    const dashboardRef = doc(db, 'users', userId, 'dashboard', 'stats');
+    const dashboardSnap = await getDoc(dashboardRef);
+    
+    if (dashboardSnap.exists()) {
+      const data = dashboardSnap.data();
+      await updateDoc(dashboardRef, {
+        totalBalance,
+        activeWallets,
+        topPerformer: topPerformer || 'None',
+        topPerformerImage: topPerformerImage || '',
+        topPerformerSymbol: topPerformerSymbol || '',
+        topPerformerChange: topPerformerChange !== -Infinity ? topPerformerChange : 0,
+        portfolioGrowth: data.tradingProfit ? (data.tradingProfit / (data.tradingBalance || 1)) * 100 : 0
+      });
+    }
+  } catch (error) {
+    console.error('Error updating dashboard stats:', error);
+  }
+};
+
+// Handle trading logic
+const handleTradingAction = async (userId: string, action: 'start' | 'stop') => {
+  try {
+    const dashboardRef = doc(db, 'users', userId, 'dashboard', 'stats');
+    const docSnap = await getDoc(dashboardRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error('User dashboard not found');
+    }
+    
+    const data = docSnap.data();
+    const tradingBalance = data.tradingBalance || 0;
+    
+    if (action === 'start') {
+      // Check if trading balance is $0
+      if (tradingBalance === 0) {
+        throw new Error('You must deposit funds before you can start trading. Please transfer funds from your Deposit Balance to Trading Balance.');
+      }
+      
+      // Check if trading balance is sufficient
+      if (tradingBalance < 500) {
+        throw new Error('Minimum trading balance of $500 required to start trading. Please deposit more funds.');
+      }
+      
+      // Calculate profit rate based on amount
+      const profitRate = getTradingProfitRate(tradingBalance);
+      
+      await updateDoc(dashboardRef, {
+        isTradingActive: true,
+        tradingStartDate: serverTimestamp(),
+        lastProfitUpdate: serverTimestamp(),
+        weeklyProfitRate: profitRate,
+        currentTradingAmount: tradingBalance
+      });
+      
+      // Record transaction
+      const historyRef = collection(db, 'users', userId, 'transactions');
+      await addDoc(historyRef, {
+        type: 'trading_started',
+        amount: tradingBalance,
+        profitRate: profitRate,
+        date: serverTimestamp(),
+        status: 'active',
+        description: `Trading started with $${tradingBalance.toFixed(2)} at ${profitRate}% weekly profit rate`
+      });
+      
+      return { success: true, message: 'Trading started successfully!' };
+    } else {
+      // Stop trading
+      await updateDoc(dashboardRef, {
+        isTradingActive: false
+      });
+      
+      // Record transaction
+      const historyRef = collection(db, 'users', userId, 'transactions');
+      await addDoc(historyRef, {
+        type: 'trading_stopped',
+        date: serverTimestamp(),
+        status: 'completed',
+        description: `Trading stopped. Total profit earned: $${data.tradingProfit?.toFixed(2) || '0.00'}`
+      });
+      
+      return { success: true, message: 'Trading stopped successfully!' };
+    }
+  } catch (error: any) {
+    console.error('Error handling trading action:', error);
+    return { success: false, message: error.message || 'Failed to process trading action' };
+  }
+};
+
+// Calculate weekly profit
+const calculateWeeklyProfit = async (userId: string) => {
+  try {
+    const dashboardRef = doc(db, 'users', userId, 'dashboard', 'stats');
+    const docSnap = await getDoc(dashboardRef);
+    
+    if (!docSnap.exists()) return;
+    
+    const data = docSnap.data();
+    
+    // Only calculate if trading is active
+    if (!data.isTradingActive) return;
+    
+    const lastUpdate = data.lastProfitUpdate?.toDate?.() || new Date();
+    const now = new Date();
+    const hoursSinceLastUpdate = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+    
+    // Calculate weekly profit (7 days = 168 hours)
+    const weeklyRate = data.weeklyProfitRate || 0;
+    const tradingAmount = data.currentTradingAmount || data.tradingBalance || 0;
+    
+    // Calculate profit for the elapsed time (pro-rata)
+    const weeklyProfit = (tradingAmount * weeklyRate) / 100;
+    const hourlyProfit = weeklyProfit / 168;
+    const profitEarned = hourlyProfit * hoursSinceLastUpdate;
+    
+    if (profitEarned > 0) {
+      // Update trading profit
+      const newTradingProfit = (data.tradingProfit || 0) + profitEarned;
+      
+      await updateDoc(dashboardRef, {
+        tradingProfit: newTradingProfit,
+        lastProfitUpdate: now,
+        totalBalance: (data.totalBalance || 0) + profitEarned
+      });
+      
+      // Record profit transaction if significant
+      if (profitEarned > 0.01) {
+        const historyRef = collection(db, 'users', userId, 'transactions');
+        await addDoc(historyRef, {
+          type: 'profit_earned',
+          amount: profitEarned,
+          date: serverTimestamp(),
+          status: 'completed',
+          description: `Weekly profit earned: $${profitEarned.toFixed(2)} at ${weeklyRate}% rate`
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error calculating weekly profit:', error);
+  }
+};
+
 const Dashboard: React.FC = () => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [isAssetsModalOpen, setIsAssetsModalOpen] = useState(false);
-  // const [isMessagesOpen, setIsMessagesOpen] = useState(false); // Commented out - Coming Soon
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [marketTrends, setMarketTrends] = useState<MarketTrend[]>(FALLBACK_MARKET_TRENDS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalBalance: 0,
+    depositBalance: 0,
+    tradingBalance: 0,
+    tradingProfit: 0,
     portfolioGrowth: 0,
     activeWallets: 0,
-    topPerformer: ''
+    topPerformer: '',
+    topPerformerImage: '',
+    topPerformerSymbol: '',
+    topPerformerChange: 0,
+    isTradingActive: false,
+    weeklyProfitRate: 0,
+    currentTradingAmount: 0
   });
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [aiSuggestions, setAiSuggestions] = useState<AITradingSuggestion[]>(FALLBACK_AI_SUGGESTIONS);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [selectedCrypto, setSelectedCrypto] = useState<AITradingSuggestion | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [isTradingActionLoading, setIsTradingActionLoading] = useState(false);
+  const [tradingStatusMessage, setTradingStatusMessage] = useState<{type: 'success' | 'error' | 'info', message: string} | null>(null);
   
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
@@ -337,55 +599,23 @@ const Dashboard: React.FC = () => {
     setWelcomeMessage(welcomeMessages[randomIndex]);
   }, []);
 
-  // Initialize user data with $0 starting balance
-  const initializeUserData = async (userId: string) => {
-    try {
-      const userDocRef = doc(db, 'users', userId, 'dashboard', 'stats');
-      const userDoc = await getDoc(userDocRef);
-      
-      if (!userDoc.exists()) {
-        // Create new document with $0 starting balance
-        const initialData: DashboardData = {
-          totalBalance: 0,
-          portfolioGrowth: 0,
-          activeWallets: 0,
-          topPerformer: ''
-        };
-        
-        await setDoc(userDocRef, initialData);
-        console.log('New user created with $0 starting balance!');
-      }
-    } catch (error) {
-      console.error('Error initializing user data:', error);
-    }
-  };
-
-  // Fetch dashboard data from Firestore
+  // Initialize user data and fetch dashboard data
   useEffect(() => {
     if (!user) return;
 
-    const fetchDashboardData = async () => {
+    const initializeAndFetch = async () => {
       try {
-        // Initialize user data if needed
-        await initializeUserData(user.uid);
+        await initializeUserBalances(user.uid);
 
-        // Set up real-time listener for dashboard data
         const unsubscribe = onSnapshot(
           doc(db, 'users', user.uid, 'dashboard', 'stats'),
           (doc) => {
             if (doc.exists()) {
               const data = doc.data() as DashboardData;
-              setDashboardData(data);
-            } else {
-              // Create initial data if document doesn't exist
-              const initialData: DashboardData = {
-                totalBalance: 0,
-                portfolioGrowth: 0,
-                activeWallets: 0,
-                topPerformer: ''
-              };
-              setDoc(doc(db, 'users', user.uid, 'dashboard', 'stats'), initialData);
-              setDashboardData(initialData);
+              setDashboardData(prev => ({
+                ...prev,
+                ...data
+              }));
             }
           },
           (err) => {
@@ -396,15 +626,55 @@ const Dashboard: React.FC = () => {
 
         return () => unsubscribe();
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setError('Failed to load dashboard');
+        console.error('Error initializing user data:', error);
+        setError('Failed to initialize dashboard');
       }
     };
 
-    fetchDashboardData();
+    initializeAndFetch();
   }, [user]);
 
-  // Fetch market trends data - NEVER FAILS
+  // Fetch wallet data to update dashboard stats
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchWalletData = async () => {
+      try {
+        const unsubscribe = onSnapshot(
+          collection(db, 'users', user.uid, 'wallets'),
+          async (snapshot) => {
+            await updateDashboardStats(user.uid);
+          },
+          (err) => {
+            console.error('Error fetching wallet data:', err);
+          }
+        );
+
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('Error setting up wallet listener:', error);
+      }
+    };
+
+    fetchWalletData();
+  }, [user]);
+
+  // Weekly profit calculation interval
+  useEffect(() => {
+    if (!user || !dashboardData.isTradingActive) return;
+
+    // Calculate profit every hour
+    const intervalId = setInterval(() => {
+      calculateWeeklyProfit(user.uid);
+    }, 60 * 60 * 1000); // Every hour
+
+    // Initial calculation
+    calculateWeeklyProfit(user.uid);
+
+    return () => clearInterval(intervalId);
+  }, [user, dashboardData.isTradingActive]);
+
+  // Fetch market trends data
   useEffect(() => {
     const fetchMarketTrends = async () => {
       try {
@@ -418,36 +688,26 @@ const Dashboard: React.FC = () => {
           if (data && data.length > 0) {
             setMarketTrends(data);
             setError(null);
-          } else {
-            // If data is empty, keep fallback
-            console.log('No data received, using fallback');
           }
-        } else {
-          // If API fails, keep fallback data
-          console.log('API failed, using fallback data');
         }
       } catch (err) {
-        // If ANY error occurs, keep fallback data
         console.log('Error fetching market trends, using fallback:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Initial fetch
     fetchMarketTrends();
     
-    // Update every 60 seconds
     const intervalId = setInterval(fetchMarketTrends, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // Fetch AI Trading Suggestions with Images - NEVER FAILS
+  // Fetch AI Trading Suggestions
   useEffect(() => {
     const fetchAiSuggestions = async () => {
       try {
         setIsLoadingAi(true);
-        // Using CoinGecko API to get crypto data with images
         const response = await fetch(
           'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=6&page=1&sparkline=false&price_change_percentage=24h'
         );
@@ -459,9 +719,7 @@ const Dashboard: React.FC = () => {
         const data = await response.json();
         
         if (data && data.length > 0) {
-          // Transform data with AI analysis and recommendations
           const suggestions: AITradingSuggestion[] = data.map((coin: any, index: number) => {
-            // AI analysis simulation based on market data
             const confidence = 75 + Math.random() * 20;
             const riskLevels: ('Low' | 'Medium' | 'High')[] = ['Low', 'Medium', 'High'];
             const recommendations: ('Strong Buy' | 'Buy' | 'Hold' | 'Sell')[] = ['Strong Buy', 'Buy', 'Hold'];
@@ -481,7 +739,7 @@ const Dashboard: React.FC = () => {
               riskLevel: riskLevels[riskIndex],
               recommendation: recommendations[recommendationIndex],
               image: coin.image,
-              description: `AI analysis suggests ${coin.symbol.toUpperCase()} shows strong momentum with ${coin.price_change_percentage_24h > 0 ? 'positive' : 'consolidating'} trends. Our algorithm identifies potential growth opportunities based on market sentiment and technical indicators.`,
+              description: `AI analysis suggests ${coin.symbol.toUpperCase()} shows strong momentum with ${coin.price_change_percentage_24h > 0 ? 'positive' : 'consolidating'} trends.`,
               benefits: [
                 'High liquidity and market depth',
                 'Strong community and developer support',
@@ -498,12 +756,8 @@ const Dashboard: React.FC = () => {
           });
           
           setAiSuggestions(suggestions);
-        } else {
-          // Keep fallback if API returns empty
-          console.log('No AI suggestions from API, using fallback');
         }
       } catch (err) {
-        // If ANY error occurs, keep fallback data
         console.error('Error fetching AI suggestions, using fallback:', err);
       } finally {
         setIsLoadingAi(false);
@@ -512,7 +766,6 @@ const Dashboard: React.FC = () => {
 
     fetchAiSuggestions();
     
-    // Update AI suggestions every 2 minutes
     const intervalId = setInterval(fetchAiSuggestions, 120000);
     return () => clearInterval(intervalId);
   }, []);
@@ -537,6 +790,73 @@ const Dashboard: React.FC = () => {
     setSelectedCrypto(null);
   };
 
+  const handleOpenTransferModal = () => {
+    setIsTransferModalOpen(true);
+  };
+
+  const handleCloseTransferModal = () => {
+    setIsTransferModalOpen(false);
+  };
+
+  const handleTransferSuccess = async () => {
+    if (user) {
+      const dashboardRef = doc(db, 'users', user.uid, 'dashboard', 'stats');
+      const docSnap = await getDoc(dashboardRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as DashboardData;
+        setDashboardData(prev => ({
+          ...prev,
+          ...data
+        }));
+      }
+    }
+    setIsTransferModalOpen(false);
+  };
+
+  const handleTradeAction = async () => {
+    if (!user) return;
+    
+    setIsTradingActionLoading(true);
+    setTradingStatusMessage(null);
+    
+    try {
+      const action = dashboardData.isTradingActive ? 'stop' : 'start';
+      const result = await handleTradingAction(user.uid, action);
+      
+      if (result.success) {
+        setTradingStatusMessage({
+          type: 'success',
+          message: result.message
+        });
+        
+        // Refresh data
+        const dashboardRef = doc(db, 'users', user.uid, 'dashboard', 'stats');
+        const docSnap = await getDoc(dashboardRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data() as DashboardData;
+          setDashboardData(prev => ({
+            ...prev,
+            ...data
+          }));
+        }
+      } else {
+        setTradingStatusMessage({
+          type: 'error',
+          message: result.message
+        });
+      }
+    } catch (error: any) {
+      setTradingStatusMessage({
+        type: 'error',
+        message: error.message || 'Failed to process trading action'
+      });
+    } finally {
+      setIsTradingActionLoading(false);
+      // Clear status message after 5 seconds
+      setTimeout(() => setTradingStatusMessage(null), 5000);
+    }
+  };
+
   // Format currency
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -558,7 +878,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Header - Messages icon commented out */}
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Dashboard</h1>
       </div>
@@ -581,54 +901,154 @@ const Dashboard: React.FC = () => {
         <p className="text-sm mt-1">{welcomeMessage}</p>
       </motion.div>
 
-      {/* Balance Card */}
+      {/* Trading Status Message */}
+      {tradingStatusMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-3 rounded-lg ${
+            tradingStatusMessage.type === 'success' 
+              ? 'bg-green-100 text-green-700 border border-green-300' 
+              : tradingStatusMessage.type === 'error'
+              ? 'bg-red-100 text-red-700 border border-red-300'
+              : 'bg-blue-100 text-blue-700 border border-blue-300'
+          }`}
+        >
+          {tradingStatusMessage.message}
+        </motion.div>
+      )}
+
+      {/* Balance Cards - Three Cards Only */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="balance-card relative p-6 rounded-lg shadow-md bg-white"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-600">Total Balance</h2>
+        {/* Deposit/Total Balance Card */}
+        <div className="balance-card relative p-5 rounded-lg shadow-md bg-white border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Wallet className="text-blue-600" size={20} />
+              <h2 className="text-sm font-medium text-gray-600">Deposit/Total Balance</h2>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleOpenTransferModal}
+                className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <ArrowLeftRight size={12} />
+                <span>Transfer</span>
+              </button>
+              <button 
+                onClick={toggleBalanceVisibility}
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label={isBalanceVisible ? "Hide balance" : "Show balance"}
+              >
+                {isBalanceVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <h3 className="text-2xl font-bold text-gray-900">
+              {isBalanceVisible ? formatCurrency(dashboardData.depositBalance) : "••••••••"}
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Main wallet balance</p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <h3 className="text-4xl font-bold text-gray-900">
-            {isBalanceVisible ? formatCurrency(dashboardData.totalBalance) : "••••••••"}
-          </h3>
-          <button 
-            onClick={toggleBalanceVisibility}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label={isBalanceVisible ? "Hide balance" : "Show balance"}
-          >
-            {isBalanceVisible ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+        {/* Trading Balance Card with Trade Button */}
+        <div className="balance-card relative p-5 rounded-lg shadow-md bg-white border-l-4 border-green-500">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <Coins className="text-green-600" size={20} />
+              <h2 className="text-sm font-medium text-gray-600">Trading Balance</h2>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleTradeAction}
+                disabled={isTradingActionLoading || dashboardData.tradingBalance === 0 || dashboardData.tradingBalance < 500}
+                className={`text-xs px-2 py-1 rounded transition-colors flex items-center gap-1 ${
+                  dashboardData.isTradingActive
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : dashboardData.tradingBalance === 0
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                } ${
+                  (isTradingActionLoading || dashboardData.tradingBalance === 0 || dashboardData.tradingBalance < 500) && 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {isTradingActionLoading ? (
+                  <RefreshCw size={12} className="animate-spin" />
+                ) : dashboardData.isTradingActive ? (
+                  <>
+                    <Pause size={12} />
+                    <span>Stop</span>
+                  </>
+                ) : dashboardData.tradingBalance === 0 ? (
+                  <>
+                    <span>Deposit Required</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={12} />
+                    <span>Trade</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <h3 className="text-2xl font-bold text-gray-900">
+              {isBalanceVisible ? formatCurrency(dashboardData.tradingBalance) : "••••••••"}
+            </h3>
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-gray-500">Active trading funds</p>
+            {dashboardData.isTradingActive && (
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-xs font-medium text-green-600">
+                  {dashboardData.weeklyProfitRate}% weekly
+                </span>
+              </div>
+            )}
+            {!dashboardData.isTradingActive && dashboardData.tradingBalance > 0 && dashboardData.tradingBalance < 500 && (
+              <span className="text-xs text-amber-600">Min $500 to trade</span>
+            )}
+            {dashboardData.tradingBalance === 0 && (
+              <span className="text-xs text-gray-400">No funds to trade</span>
+            )}
+          </div>
         </div>
 
-        {/* Dynamic Percentage Change */}
-        <div className="mt-2">
-          <PercentageChange 
-            value={dashboardData.portfolioGrowth} 
-            suffix={`${formatCurrency(dashboardData.totalBalance * (dashboardData.portfolioGrowth / 100))} today`} 
-          />
-        </div>
+        {/* Trading Profit Card */}
+        <div className="balance-card relative p-5 rounded-lg shadow-md bg-white border-l-4 border-purple-500">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="text-purple-600" size={20} />
+              <h2 className="text-sm font-medium text-gray-600">Trading Profit</h2>
+            </div>
+            <div className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+              Earnings
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <button 
-            className="flex items-center justify-center py-3 px-4 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-            onClick={() => navigate('/wallets')}
-          >
-            <DollarSign size={18} className="mr-2" />
-            <span>Deposit</span>
-          </button>
-
-          <button 
-            className="flex items-center justify-center py-3 px-4 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 transition-colors"
-            onClick={() => navigate('/wallets')}
-          >
-            <Activity size={18} className="mr-2" />
-            <span>Transfer</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-2xl font-bold text-gray-900">
+              {isBalanceVisible ? formatCurrency(dashboardData.tradingProfit) : "••••••••"}
+            </h3>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Accumulated trading profits</p>
+          {dashboardData.isTradingActive && dashboardData.tradingBalance > 0 && (
+            <div className="mt-2 p-1.5 bg-green-50 rounded border border-green-200">
+              <p className="text-[10px] text-green-700">
+                Trading active · {dashboardData.weeklyProfitRate}% weekly · ${(dashboardData.tradingBalance * dashboardData.weeklyProfitRate / 100).toFixed(2)}/week
+              </p>
+            </div>
+          )}
         </div>
       </motion.section>
 
@@ -637,26 +1057,40 @@ const Dashboard: React.FC = () => {
         <StatCard 
           title="Portfolio Growth"
           value={`${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%`}
-          subtitle="Latest Updated"
+          subtitle="Based on Trading Profit"
           trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
           icon={TrendingUp}
         />
         <StatCard 
           title="Active Wallets"
           value={dashboardData.activeWallets.toString()}
-          subtitle="Last updated today"
+          subtitle="Active crypto wallets"
           icon={Wallet}
         />
         <StatCard 
           title="Top Performer"
           value={dashboardData.topPerformer || "None"}
-          subtitle={dashboardData.topPerformer ? `${dashboardData.portfolioGrowth >= 0 ? '+' : ''}${dashboardData.portfolioGrowth.toFixed(2)}%` : "No data"}
-          trend={dashboardData.portfolioGrowth >= 0 ? "up" : "down"}
-          icon={Bitcoin}
+          subtitle={dashboardData.topPerformer !== "None" ? `${dashboardData.topPerformerChange >= 0 ? '+' : ''}${dashboardData.topPerformerChange?.toFixed(2) || 0}%` : "No data"}
+          trend={dashboardData.topPerformerChange && dashboardData.topPerformerChange >= 0 ? "up" : "down"}
+          icon={() => {
+            if (dashboardData.topPerformerImage && dashboardData.topPerformer !== "None") {
+              return (
+                <img 
+                  src={dashboardData.topPerformerImage} 
+                  alt={dashboardData.topPerformer}
+                  className="w-8 h-8 rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              );
+            }
+            return <Bitcoin size={20} />;
+          }}
         />
       </section>
       
-      {/* Market Trends - NEVER FAILS - MOVED ABOVE AI TRADING SUGGESTIONS */}
+      {/* Market Trends */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -712,7 +1146,7 @@ const Dashboard: React.FC = () => {
         )}
       </motion.section>
 
-      {/* AI Trading Suggestions Section - MOVED BELOW MARKET TRENDS */}
+      {/* AI Trading Suggestions Section */}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -761,6 +1195,18 @@ const Dashboard: React.FC = () => {
         isOpen={isAssetsModalOpen} 
         onClose={() => setIsAssetsModalOpen(false)} 
       />
+
+      {/* Transfer Funds Modal */}
+      {isTransferModalOpen && user && (
+        <TransferFundsModal
+          isOpen={isTransferModalOpen}
+          onClose={handleCloseTransferModal}
+          onSuccess={handleTransferSuccess}
+          userId={user.uid}
+          depositBalance={dashboardData.depositBalance}
+          tradingBalance={dashboardData.tradingBalance}
+        />
+      )}
 
       {/* AI Trading Confirmation Modal */}
       {isAiModalOpen && selectedCrypto && (
@@ -929,7 +1375,6 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
       transition={{ delay: index * 0.1 }}
       className="bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 overflow-hidden group"
     >
-      {/* Header with gradient */}
       <div className={cn(
         "bg-gradient-to-r p-4 text-white",
         getRecommendationColor(crypto.recommendation)
@@ -962,9 +1407,7 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-4 space-y-3">
-        {/* Stats row */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="text-center p-2 bg-gray-50 rounded-lg">
             <p className="text-gray-600">24h Change</p>
@@ -976,7 +1419,6 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
           </div>
         </div>
 
-        {/* Risk level */}
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">Risk Level:</span>
           <span className={cn(
@@ -987,12 +1429,10 @@ const AITradingCard: React.FC<AITradingCardProps> = ({ crypto, index, onStartTra
           </span>
         </div>
 
-        {/* Description */}
         <p className="text-xs text-gray-600 line-clamp-2">
           {crypto.description || 'AI analysis suggests this asset shows potential for growth.'}
         </p>
 
-        {/* Action button */}
         <button
           onClick={() => onStartTrading(crypto)}
           className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform group-hover:scale-105 flex items-center justify-center space-x-2"

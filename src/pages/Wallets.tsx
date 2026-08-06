@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Copy, Check, ExternalLink, DollarSign, ArrowDown, Clock, 
-  Hash, ArrowUpRight, ArrowDownLeft, Send, Wallet 
+  Hash, ArrowUpRight, ArrowDownLeft, Send, Wallet, ArrowLeftRight,
+  PiggyBank, Coins, TrendingUp
 } from 'lucide-react';
 
 const getTransactionTypeIcon = (transaction) => {
@@ -35,6 +36,7 @@ import {
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore';
+import TransferFundsModal from '@/components/layout/TransferFundsModal';
 
 // Notification utility functions
 const sendEmailNotification = (message: string) => {
@@ -132,6 +134,13 @@ interface User {
   uid: string;
   email: string;
   displayName: string;
+}
+
+interface DashboardData {
+  depositBalance: number;
+  tradingBalance: number;
+  tradingProfit: number;
+  totalBalance: number;
 }
 
 // Fallback cryptocurrency data with real prices
@@ -357,12 +366,10 @@ const getDefaultWalletAddress = (symbol: string) => {
 
 // Fetch real-time crypto data with retry logic and cache busting
 const fetchCryptoPricesWithRetry = async (ids: string[], retries = 5, delay = 500): Promise<CGCoin[]> => {
-  // Remove duplicates from ids
   const uniqueIds = [...new Set(ids)];
   
   for (let i = 0; i < retries; i++) {
     try {
-      // Add cache-busting parameter to prevent caching
       const cacheBuster = `&_=${Date.now()}`;
       const response = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${uniqueIds.join(',')}&order=market_cap_desc&per_page=250&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
@@ -376,14 +383,12 @@ const fetchCryptoPricesWithRetry = async (ids: string[], retries = 5, delay = 50
       }
       
       if (response.status === 429) {
-        // Rate limit hit - wait longer with exponential backoff
         const waitTime = delay * Math.pow(2, i);
         console.log(`Rate limited, waiting ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
       
-      // If we got a response but no data, try again
       if (i < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -395,7 +400,6 @@ const fetchCryptoPricesWithRetry = async (ids: string[], retries = 5, delay = 50
       if (i < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
       } else {
-        // Return fallback data
         return getFallbackData(uniqueIds);
       }
     }
@@ -403,7 +407,6 @@ const fetchCryptoPricesWithRetry = async (ids: string[], retries = 5, delay = 50
   return getFallbackData(uniqueIds);
 };
 
-// Get fallback data for specific coins
 const getFallbackData = (ids: string[]): CGCoin[] => {
   const fallbackData: CGCoin[] = [];
   
@@ -417,13 +420,11 @@ const getFallbackData = (ids: string[]): CGCoin[] => {
   return fallbackData;
 };
 
-// Search for cryptocurrencies with retry
 const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): Promise<CGCoin[]> => {
   const searchTerm = query.trim().toLowerCase();
   
   for (let i = 0; i < retries; i++) {
     try {
-      // Try search endpoint first with cache buster
       const cacheBuster = `&_=${Date.now()}`;
       const searchResponse = await fetch(
         `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(searchTerm)}${cacheBuster}`
@@ -435,7 +436,6 @@ const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): 
         if (searchData.coins && searchData.coins.length > 0) {
           const coinIds = searchData.coins.slice(0, 20).map((coin: any) => coin.id);
           
-          // Fetch detailed data for these coins with cache buster
           const marketResponse = await fetch(
             `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds.join(',')}&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
           );
@@ -449,7 +449,6 @@ const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): 
         }
       }
       
-      // If search fails, try filtering from top coins
       const topCoinsResponse = await fetch(
         `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h${cacheBuster}`
       );
@@ -477,7 +476,6 @@ const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): 
       if (i < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
       } else {
-        // Return fallback data filtered by search
         const filtered = FALLBACK_CRYPTOS.filter(coin => 
           coin.name.toLowerCase().includes(searchTerm) || 
           coin.symbol.toLowerCase().includes(searchTerm)
@@ -489,7 +487,6 @@ const searchCryptosWithRetry = async (query: string, retries = 5, delay = 500): 
   return FALLBACK_CRYPTOS.slice(0, 10);
 };
 
-// Get top cryptocurrencies with retry
 const fetchTopCryptosWithRetry = async (retries = 5, delay = 500): Promise<CGCoin[]> => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -528,6 +525,51 @@ const fetchTopCryptosWithRetry = async (retries = 5, delay = 500): Promise<CGCoi
     }
   }
   return FALLBACK_CRYPTOS;
+};
+
+// Helper function to update dashboard stats
+const updateDashboardStats = async (userId: string) => {
+  try {
+    const walletsSnapshot = await getDocs(collection(db, 'users', userId, 'wallets'));
+    
+    let totalBalance = 0;
+    let activeWallets = 0;
+    let topPerformer = '';
+    let topPerformerChange = -Infinity;
+    
+    for (const walletDoc of walletsSnapshot.docs) {
+      const walletData = walletDoc.data();
+      const balance = walletData.cryptoBalance || 0;
+      const currentPrice = walletData.currentPrice || 0;
+      const usdValue = balance * currentPrice;
+      
+      totalBalance += usdValue;
+      
+      if (balance > 0) {
+        activeWallets++;
+      }
+      
+      const change = walletData.change || 0;
+      if (change > topPerformerChange && balance > 0) {
+        topPerformerChange = change;
+        topPerformer = walletData.name || '';
+      }
+    }
+    
+    const portfolioGrowth = activeWallets > 0 ? topPerformerChange : 0;
+    
+    const dashboardRef = doc(db, 'users', userId, 'dashboard', 'stats');
+    await updateDoc(dashboardRef, {
+      totalBalance,
+      activeWallets,
+      topPerformer: topPerformer || 'None',
+      portfolioGrowth
+    });
+    
+    console.log('Dashboard stats updated successfully');
+  } catch (error) {
+    console.error('Error updating dashboard stats:', error);
+  }
 };
 
 const TransferModal = ({ crypto, onClose }: { crypto: Cryptocurrency, onClose: () => void }) => {
@@ -661,13 +703,12 @@ const WithdrawModal = ({
 
   const exchangeRate = crypto.usdValue / crypto.balance || 1;
 
-  // Check if user has made the required 5% deposit
   const hasRequiredDeposit = () => {
     const totalDeposits = crypto.transactions
       .filter(tx => tx.type === 'deposit' || tx.type === 'received')
       .reduce((sum, tx) => sum + tx.amount, 0);
     
-    const requiredDeposit = crypto.balance * 0.05; // 5% of current balance
+    const requiredDeposit = crypto.balance * 0.05;
     return totalDeposits >= requiredDeposit;
   };
 
@@ -680,7 +721,6 @@ const WithdrawModal = ({
       return;
     }
 
-    // Check if user has made required deposit for wallet address transfers
     if (transferMethod === 'wallet' && !hasRequiredDeposit()) {
       const requiredDeposit = crypto.balance * 0.05;
       setError(`You need to make a deposit of at least ${requiredDeposit.toFixed(8)} ${crypto.symbol} (5% of your balance) before you can transfer using wallet addresses`);
@@ -714,7 +754,6 @@ const WithdrawModal = ({
         return;
       }
 
-      // Basic wallet address validation
       if (recipientWalletAddress.length < 10) {
         setError('Please enter a valid wallet address');
         return;
@@ -734,7 +773,6 @@ const WithdrawModal = ({
 
     try {
       if (transferMethod === 'email') {
-        // Existing email transfer logic
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('email', '==', recipientEmail));
         const querySnapshot = await getDocs(q);
@@ -747,7 +785,6 @@ const WithdrawModal = ({
         
         const recipientDoc = querySnapshot.docs[0];
         const recipientId = recipientDoc.id;
-        const recipientData = recipientDoc.data();
         
         const walletsRef = collection(db, 'users', recipientId, 'wallets');
         const walletQuery = query(walletsRef, where('symbol', '==', crypto.symbol));
@@ -827,7 +864,6 @@ const WithdrawModal = ({
           description: `${withdrawAmount} ${crypto.symbol} sent to ${recipientEmail}`,
         });
       } else {
-        // Wallet address transfer - show deposit requirement message
         const requiredDeposit = crypto.balance * 0.05;
         toast({
           variant: "destructive",
@@ -836,6 +872,10 @@ const WithdrawModal = ({
         });
         setIsWithdrawing(false);
         return;
+      }
+
+      if (currentUser) {
+        await updateDashboardStats(currentUser.uid);
       }
 
       onWithdrawSuccess();
@@ -891,7 +931,6 @@ const WithdrawModal = ({
           </button>
         </div>
 
-        {/* Transfer Method Selection */}
         <div className="mb-6">
           <label className="block text-gray-700 mb-3">Transfer Method</label>
           <div className="grid grid-cols-2 gap-3">
@@ -921,7 +960,6 @@ const WithdrawModal = ({
         </div>
 
         <div className="space-y-4">
-          {/* Recipient Input */}
           <div>
             <label className="block text-gray-700 mb-2">
               {transferMethod === 'email' ? 'Recipient Email Address' : 'Recipient Wallet Address'}
@@ -1050,7 +1088,6 @@ const AddCryptoModal = ({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch top cryptocurrencies on load
   useEffect(() => {
     const fetchTopCryptos = async () => {
       setIsLoading(true);
@@ -1075,7 +1112,6 @@ const AddCryptoModal = ({
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      // If search is empty, show top cryptos
       setIsLoading(true);
       setError(null);
       try {
@@ -1100,7 +1136,6 @@ const AddCryptoModal = ({
         setSearchResults(results);
       } else {
         setError('No cryptocurrencies found. Try a different search term.');
-        // Show fallback results that match the search
         const filtered = FALLBACK_CRYPTOS.filter(coin => 
           coin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
           coin.symbol.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1113,7 +1148,6 @@ const AddCryptoModal = ({
     } catch (error) {
       console.error('Error searching cryptos:', error);
       setError('Search failed. Showing available cryptocurrencies.');
-      // Show fallback results
       const filtered = FALLBACK_CRYPTOS.filter(coin => 
         coin.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         coin.symbol.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1211,7 +1245,6 @@ const AddCryptoModal = ({
                         <p className="text-sm text-gray-500">{crypto.symbol.toUpperCase()}</p>
                       </div>
                     </div>
-                    {/* REMOVED: Price and percentage change display */}
                     {alreadyAdded && (
                       <span className="text-xs text-gray-500 ml-2 flex-shrink-0">Added</span>
                     )}
@@ -1400,6 +1433,13 @@ const Wallets: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [loadingWallets, setLoadingWallets] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    depositBalance: 0,
+    tradingBalance: 0,
+    tradingProfit: 0,
+    totalBalance: 0
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -1414,6 +1454,31 @@ const Wallets: React.FC = () => {
     }
   }, [currentUser, authLoading, navigate]);
 
+  // Fetch dashboard data for balances
+  useEffect(() => {
+    if (!authChecked || !currentUser) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', currentUser.uid, 'dashboard', 'stats'),
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setDashboardData({
+            depositBalance: data.depositBalance || 0,
+            tradingBalance: data.tradingBalance || 0,
+            tradingProfit: data.tradingProfit || 0,
+            totalBalance: data.totalBalance || 0
+          });
+        }
+      },
+      (err) => {
+        console.error('Error fetching dashboard data:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [authChecked, currentUser]);
+
   // Update crypto prices every 30 seconds with cache busting
   useEffect(() => {
     if (!authChecked || !currentUser || cryptos.length === 0) return;
@@ -1423,7 +1488,6 @@ const Wallets: React.FC = () => {
         const cgIds = cryptos.filter(c => c.cgId).map(c => c.cgId!);
         if (cgIds.length === 0) return;
 
-        // Remove duplicates
         const uniqueIds = [...new Set(cgIds)];
         
         const priceData = await fetchCryptoPricesWithRetry(uniqueIds);
@@ -1452,13 +1516,13 @@ const Wallets: React.FC = () => {
       }
     };
 
-    // Update prices immediately and then every 30 seconds
     updatePrices();
     const intervalId = setInterval(updatePrices, 30000);
 
     return () => clearInterval(intervalId);
   }, [authChecked, currentUser, cryptos.length]);
 
+  // Listen to wallet changes and update dashboard stats
   useEffect(() => {
     if (!authChecked || !currentUser) return;
 
@@ -1494,7 +1558,6 @@ const Wallets: React.FC = () => {
               let currentPrice = walletData.currentPrice || 0;
               let priceChange = walletData.change || 0;
               
-              // Try to fetch fresh price if we have a cgId
               if (walletData.cgId) {
                 try {
                   const priceData = await fetchCryptoPricesWithRetry([walletData.cgId]);
@@ -1526,6 +1589,10 @@ const Wallets: React.FC = () => {
           );
 
           setCryptos(updatedCryptos);
+          
+          if (currentUser) {
+            await updateDashboardStats(currentUser.uid);
+          }
         } catch (error) {
           console.error("Error in wallets snapshot:", error);
           toast({
@@ -1571,6 +1638,8 @@ const Wallets: React.FC = () => {
 
       await setDoc(doc(walletRef, 'transactions', 'initial'), {});
 
+      await updateDashboardStats(currentUser.uid);
+
       toast({
         description: `${newCrypto.name} wallet added successfully!`,
       });
@@ -1581,6 +1650,13 @@ const Wallets: React.FC = () => {
         description: "Failed to add wallet. Please try again.",
       });
     }
+  };
+
+  const handleTransferSuccess = () => {
+    toast({
+      description: "Transfer completed successfully!",
+    });
+    setIsTransferModalOpen(false);
   };
 
   if (authLoading) {
@@ -1614,12 +1690,62 @@ const Wallets: React.FC = () => {
         />
       )}
       
+      {/* Transfer Funds Modal */}
+      {isTransferModalOpen && currentUser && (
+        <TransferFundsModal
+          isOpen={isTransferModalOpen}
+          onClose={() => setIsTransferModalOpen(false)}
+          onSuccess={handleTransferSuccess}
+          userId={currentUser.uid}
+          depositBalance={dashboardData.depositBalance}
+          tradingBalance={dashboardData.tradingBalance}
+        />
+      )}
+      
       <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">Wallets</h1>
       
-      <div className="dashboard-card">
-        <h2 className="text-gray-600 font-medium">Total Balance</h2>
-        <p className="text-3xl font-bold mt-2">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        <p className="text-sm text-gray-500 mt-1">{cryptos.length} {cryptos.length === 1 ? 'wallet' : 'wallets'}</p>
+      {/* Balance Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="dashboard-card bg-white border-l-4 border-blue-500">
+          <div className="flex items-center space-x-2">
+            <PiggyBank className="text-blue-600" size={20} />
+            <h2 className="text-sm font-medium text-gray-600">Deposit Balance</h2>
+          </div>
+          <p className="text-2xl font-bold mt-2">${dashboardData.depositBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+        
+        <div className="dashboard-card bg-white border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Coins className="text-green-600" size={20} />
+              <h2 className="text-sm font-medium text-gray-600">Trading Balance</h2>
+            </div>
+            <button 
+              onClick={() => setIsTransferModalOpen(true)}
+              className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+            >
+              <ArrowLeftRight size={12} />
+              <span>Transfer</span>
+            </button>
+          </div>
+          <p className="text-2xl font-bold mt-2">${dashboardData.tradingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+        
+        <div className="dashboard-card bg-white border-l-4 border-purple-500">
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="text-purple-600" size={20} />
+            <h2 className="text-sm font-medium text-gray-600">Trading Profit</h2>
+          </div>
+          <p className="text-2xl font-bold mt-2">${dashboardData.tradingProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
+        
+        <div className="dashboard-card bg-white border-l-4 border-gray-500">
+          <div className="flex items-center space-x-2">
+            <Wallet className="text-gray-600" size={20} />
+            <h2 className="text-sm font-medium text-gray-600">Total Balance</h2>
+          </div>
+          <p className="text-2xl font-bold mt-2">${dashboardData.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        </div>
       </div>
      
       <div className="dashboard-card">
@@ -1697,6 +1823,9 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   
   const handleWithdrawSuccess = () => {
+    if (currentUser) {
+      updateDashboardStats(currentUser.uid);
+    }
     toast({
       description: "Withdrawal successful!",
     });
