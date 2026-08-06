@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ArrowRight, Check, TrendingUp } from 'lucide-react';
 
 interface InvestmentPackagesSectionProps {
@@ -7,59 +7,79 @@ interface InvestmentPackagesSectionProps {
 
 const INVESTMENT_PACKAGES = [
   {
-    id: 'beginner',
-    name: 'Starter Plan',
-    subtext: 'Ideal for startups and small investors that need essential financial support to get organized, make informed decisions, and build a solid foundation for growth.',
-    monthlyPrice: '$500',
-    yearlyPrice: '$425',
-    unit: '/Min Capital',
-    roi: '10% Weekly ROI',
+    id: 'tier1',
+    name: 'Starter Tier',
+    range: '$500 – $5,000',
+    subtext: 'Ideal for entry-level investors looking to establish a secure crypto portfolio with reliable weekly returns.',
+    priceDisplay: '$500 – $5,000',
+    unit: 'Deposit Range',
+    roi: '5% Profit / Week',
+    profitRate: '5%',
     popular: false,
     features: [
-      '10% Weekly Return on Investment (ROI)',
+      '5% Weekly Profit Yield',
+      '$500 Minimum Investment',
       'Automated Blue-Chip DCA (BTC, ETH, SOL)',
-      'Basic Portfolio Tracking & Analytics',
-      'Monthly Staking Yield Payouts',
-      'Standard Security & Cold Custody',
-      '24/7 Self-Service Investor Portal',
+      'Weekly Automated Profit Payouts',
+      'Cold Custody Security Protection',
+      '24/7 Investor Portal Access',
     ],
   },
   {
-    id: 'growth',
-    name: 'Professional Plan',
-    subtext: 'Built for growing investors that need deeper financial insights, priority support, and clearer visibility to make smarter, faster decisions.',
-    monthlyPrice: '$5,000',
-    yearlyPrice: '$4,250',
-    unit: '/Min Capital',
-    roi: '10% Weekly ROI',
-    popular: true, // Featured Dark Card
-    features: [
-      '10% Weekly Return on Investment (ROI)',
-      'Algorithmic Proof-of-Stake Yield Farming',
-      'Higher Return on Investment Analytics',
-      'Layer-1 & Layer-2 Validator Access',
-      'Tax Planning Assistance & Reports',
-      'Pricing Profitability Analysis',
-      'Priority Email & Chat Support',
-    ],
-  },
-  {
-    id: 'institutional',
-    name: 'Enterprise Plan',
-    subtext: 'Designed for scaling institutions that require full-service financial management, strategic oversight, and dedicated support at every stage of growth.',
-    monthlyPrice: '$25,000',
-    yearlyPrice: '$21,250',
-    unit: '/Min Capital',
-    roi: '10% Weekly ROI',
+    id: 'tier2',
+    name: 'Growth Tier',
+    range: '$5,000 – $8,000',
+    subtext: 'Built for growing investors seeking accelerated weekly returns and enhanced staking yield performance.',
+    priceDisplay: '$5,000 – $8,000',
+    unit: 'Deposit Range',
+    roi: '8% Profit / Week',
+    profitRate: '8%',
     popular: false,
     features: [
-      '10% Weekly Return on Investment (ROI)',
-      'End-to-End Financial Management',
-      'Advanced Financial Reporting & Arbitrage',
-      'Strategic Financial Planning Sessions',
-      'Dedicated Crypto Wealth Advisor',
+      '8% Weekly Profit Yield',
+      '$5,000 Minimum Investment',
+      'Proof-of-Stake Yield & Staking Pool',
+      'Enhanced Analytics & Reporting',
+      'Weekly Automated Profit Payouts',
       'Priority Email & Chat Support',
-      'Customized Risk Mitigation Hedging',
+    ],
+  },
+  {
+    id: 'tier3',
+    name: 'Professional Tier',
+    range: '$8,000 – $50,000',
+    subtext: 'Designed for serious investors seeking high-tier weekly algorithmic trading yields and dedicated strategy.',
+    priceDisplay: '$8,000 – $50,000',
+    unit: 'Deposit Range',
+    roi: '10% Profit / Week',
+    profitRate: '10%',
+    popular: true,
+    features: [
+      '10% Weekly Profit Yield',
+      '$8,000 Minimum Investment',
+      'Algorithmic Trading & Yield Strategy',
+      'Layer-1 & Layer-2 Validator Access',
+      'Dedicated Wealth Advisor Consultations',
+      'Priority VIP Direct Support',
+    ],
+  },
+  {
+    id: 'tier4',
+    name: 'Enterprise Tier',
+    range: '$50,000 & Above',
+    subtext: 'Designed for institutional & high-net-worth investors requiring maximum yield brackets and bespoke management.',
+    priceDisplay: '$50,000+',
+    unit: 'Deposit Range',
+    roi: '10% – 15% Profit / Week',
+    profitRate: '10% – 15%',
+    popular: false,
+    features: [
+      '10% – 15% Weekly Profit Yield',
+      '$50,000 Minimum Investment',
+      'End-to-End Institutional Asset Management',
+      'Arbitrage & Custom Risk Mitigation',
+      'Dedicated Private Portfolio Manager',
+      '24/7 Executive Direct VIP Line',
     ],
   },
 ];
@@ -67,70 +87,43 @@ const INVESTMENT_PACKAGES = [
 export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps> = ({
   onOpenConsultation,
 }) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
   return (
     <section id="packages" className="bg-[#fcfdfc] text-zinc-900 py-16 lg:py-20 px-4 sm:px-6 lg:px-8 border-b border-zinc-200/80 select-none">
       <div className="max-w-7xl mx-auto">
-        {/* Top Header matching prompt */}
+        {/* Top Header */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <span className="text-zinc-500 font-medium text-[10px] sm:text-xs tracking-wide block mb-2">
-            Committed to clients, focused on results
+            Structured Tiered Investment Yields
           </span>
 
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-zinc-900 tracking-tight leading-[1.2] font-sans">
-            Delivering the highest
+            Guaranteed Weekly Profit
             <br />
-            quality outcomes
+            Investment Tiers
           </h2>
 
-          {/* Monthly / Yearly Toggle Pill */}
-          <div className="mt-6 inline-flex items-center bg-zinc-900 p-1 rounded-lg text-xs font-semibold">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-1.5 rounded-lg transition-all cursor-pointer ${
-                billingCycle === 'monthly'
-                  ? 'bg-zinc-800 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`px-4 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                billingCycle === 'yearly'
-                  ? 'bg-zinc-800 text-white shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>Yearly</span>
-              <span className="bg-[#61dafb] text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
-                Save up to 25%
-              </span>
-            </button>
-          </div>
+          <p className="mt-3 text-xs sm:text-sm text-zinc-600 font-normal max-w-2xl mx-auto leading-relaxed">
+            Minimum deposit starts at <span className="font-bold text-zinc-900">$500</span>. Each tier unlocks higher weekly profit percentages up to <span className="font-bold text-zinc-900">15% per week</span>.
+          </p>
         </div>
 
-        {/* 3 Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+        {/* 4 Tier Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-stretch">
           {INVESTMENT_PACKAGES.map((pkg) => {
             const isDark = pkg.popular;
-            const price =
-              billingCycle === 'monthly' ? pkg.monthlyPrice : pkg.yearlyPrice;
 
             return (
               <div
                 key={pkg.id}
-                className={`rounded-[24px] sm:rounded-[28px] p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 ${
+                className={`rounded-[24px] p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 ${
                   isDark
-                    ? 'bg-zinc-950 text-white shadow-2xl border border-zinc-800'
+                    ? 'bg-zinc-950 text-white shadow-2xl border border-zinc-800 scale-[1.02] sm:scale-100 lg:scale-[1.02]'
                     : 'bg-white text-zinc-900 border border-zinc-200/90 shadow-sm hover:shadow-xl'
                 }`}
               >
                 <div>
                   {/* ROI Badge */}
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider mb-2.5 ${
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[9px] font-extrabold uppercase tracking-wider mb-2.5 ${
                     isDark
                       ? 'bg-[#61dafb]/20 border-[#61dafb]/40 text-[#61dafb]'
                       : 'bg-[#61dafb]/20 border-[#61dafb]/40 text-[#0284c7]'
@@ -141,32 +134,36 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
 
                   {/* Card Header Title */}
                   <h3
-                    className={`text-xl font-extrabold tracking-tight mb-2 ${
+                    className={`text-base sm:text-lg font-extrabold tracking-tight mb-0.5 ${
                       isDark ? 'text-white' : 'text-zinc-900'
                     }`}
                   >
                     {pkg.name}
                   </h3>
 
+                  <div className="text-[10px] font-bold text-[#0284c7] mb-2.5">
+                    Range: {pkg.range}
+                  </div>
+
                   <p
-                    className={`text-xs leading-relaxed mb-4 font-normal ${
+                    className={`text-[10px] sm:text-[11px] leading-relaxed mb-4 font-normal ${
                       isDark ? 'text-zinc-300' : 'text-zinc-500'
                     }`}
                   >
                     {pkg.subtext}
                   </p>
 
-                  {/* Price Tag */}
-                  <div className="flex items-baseline gap-1.5 mb-6">
+                  {/* Price/Range Display */}
+                  <div className="flex flex-col mb-4">
                     <span
-                      className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-sans ${
+                      className={`text-xl sm:text-2xl font-extrabold tracking-tight font-sans ${
                         isDark ? 'text-white' : 'text-zinc-900'
                       }`}
                     >
-                      {price}
+                      {pkg.priceDisplay}
                     </span>
                     <span
-                      className={`text-[10px] sm:text-xs font-medium ${
+                      className={`text-[9px] font-medium mt-0.5 ${
                         isDark ? 'text-zinc-400' : 'text-zinc-500'
                       }`}
                     >
@@ -174,31 +171,31 @@ export const InvestmentPackagesSection: React.FC<InvestmentPackagesSectionProps>
                     </span>
                   </div>
 
-                  {/* Primary Action Button directly under price */}
+                  {/* Primary Action Button */}
                   <button
                     onClick={onOpenConsultation}
-                    className={`w-full py-3 px-4 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md transform hover:-translate-y-0.5 mb-6 ${
+                    className={`w-full py-2.5 px-4 rounded-xl font-semibold text-[10px] sm:text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md transform hover:-translate-y-0.5 mb-4 ${
                       isDark
                         ? 'bg-[#61dafb] hover:bg-[#4faee3] text-slate-950 shadow-lg shadow-[#61dafb]/25'
                         : 'bg-zinc-900 hover:bg-black text-white'
                     }`}
                   >
-                    <span>Login Now</span>
+                    <span>Login & Invest</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
 
                   {/* Divider */}
                   <div
-                    className={`w-full h-px mb-6 ${
+                    className={`w-full h-px mb-4 ${
                       isDark ? 'bg-zinc-800' : 'bg-zinc-100'
                     }`}
                   />
 
-                  {/* Features List with Filled Blue Checkmark Circles */}
-                  <ul className="space-y-3">
+                  {/* Features List */}
+                  <ul className="space-y-2.5">
                     {pkg.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-2.5 text-xs sm:text-xs">
-                        <div className="w-4 h-4 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center shrink-0">
+                      <li key={idx} className="flex items-center gap-2 text-[10px] sm:text-[11px]">
+                        <div className="w-3.5 h-3.5 rounded-full bg-[#61dafb] text-slate-950 flex items-center justify-center shrink-0">
                           <Check className="w-2.5 h-2.5 stroke-[3]" />
                         </div>
                         <span
