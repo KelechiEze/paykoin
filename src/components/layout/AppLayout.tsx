@@ -341,7 +341,7 @@ const Sidebar: React.FC<{
           darkMode ? "border-gray-700" : "border-b"
         )}>
           <a 
-            href="https://paycoin.netlify.app/" 
+            href="https://paycoiyn.com/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center space-x-2"
