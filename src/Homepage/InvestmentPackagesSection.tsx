@@ -28,9 +28,9 @@ const INVESTMENT_PACKAGES = [
   {
     id: 'tier2',
     name: 'Growth Tier',
-    range: '$5,000 – $10,000',
+    range: '$5,000 – $8,000',
     subtext: 'Built for growing investors seeking accelerated weekly returns and enhanced staking yield performance.',
-    priceDisplay: '$5,000 – $10,000',
+    priceDisplay: '$5,000 – $8,000',
     unit: 'Deposit Range',
     roi: '8% Profit / Week',
     profitRate: '8%',
@@ -47,7 +47,7 @@ const INVESTMENT_PACKAGES = [
   {
     id: 'tier3',
     name: 'Professional Tier',
-    range: '$8,000 – $10,000',
+    range: '$8,000 – $25,000',
     subtext: 'Designed for serious investors seeking high-tier weekly algorithmic trading yields and dedicated strategy.',
     priceDisplay: '$8,000 – $10,000',
     unit: 'Deposit Range',
