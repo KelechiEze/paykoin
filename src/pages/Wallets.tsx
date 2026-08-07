@@ -2013,6 +2013,8 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <span>Deposit</span>
             </button>
            
+            {/* Temporarily commented out Send button */}
+            {/* 
             <button 
               onClick={() => setShowWithdrawModal(true)}
               className="flex items-center py-2.5 px-4 rounded-lg bg-orange-600 text-white font-medium hover:bg-orange-700 transition-colors"
@@ -2020,6 +2022,7 @@ const CryptoDetail: React.FC<{ crypto: Cryptocurrency; onBack: () => void }> = (
               <ArrowDown size={16} className="mr-2" />
               <span>Send</span>
             </button>
+            */}
 
             <button 
               onClick={handleViewOnExplorer}
